@@ -1,7 +1,7 @@
 /* Login.jsx */
 import React, { useState, useEffect } from 'react';
 import '../styles/Login.css';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const location = useLocation();
@@ -17,6 +17,7 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,13 +33,22 @@ const Login = () => {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      alert(data.message);
-      if (!isLogin && res.status === 201) {
-        setIsLogin(true);
-        setUsername('');
-        setEmail('');
-        setPassword('');
-      }
+      alert(data.message);  
+
+  // ✅ 회원가입 성공 후 로그인으로 전환
+  if (!isLogin && res.status === 201) {
+    setIsLogin(true);
+    setUsername('');
+    setEmail('');
+    setPassword('');
+  }
+
+  
+  // ✅ 로그인 성공 시 localStorage 저장
+  if (isLogin && res.status === 200) {
+  localStorage.setItem('user', JSON.stringify({ username }));
+  navigate('/'); // ← 이 줄 추가 (로그인 후 홈으로 이동)
+}
     } catch (err) {
       alert('오류 발생!');
       console.error(err);

@@ -1,5 +1,5 @@
 /* src/pages/Home.jsx */
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Home.css';
 
@@ -7,8 +7,8 @@ function Home() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    useEffect(() => {
-    // 간단히 localStorage 또는 쿠키 등으로 로그인 상태 체크
+  useEffect(() => {
+    // 로그인 상태 확인 (예: localStorage에 user 정보가 있는지)
     const user = localStorage.getItem('user');
     setIsLoggedIn(!!user);
   }, []);
@@ -19,29 +19,40 @@ function Home() {
     navigate('/');
   };
 
-
+  
   return (
     <div className="home-page">
-      {/* 🧭 내비게이션 */}
       <header className="navbar">
         <div className="navbar-inner">
           <Link to="/" className="logo">복지랑</Link>
 
-          {isLoggedIn ? (
-            <ul className="gnb">
-              <li><Link to="/">홈</Link></li>
-              <li><Link to="/chat">AI 챗봇</Link></li>
-              <li><Link to="/calendar">정책 캘린더</Link></li>
-              <li><Link to="/bookmarks">즐겨찾기</Link></li>
-              <li><Link to="/profile">마이페이지</Link></li>
-              <li><button onClick={handleLogout} className="logout-btn">로그아웃</button></li>
-            </ul>
-          ) : (
-            <div className="auth-buttons">
-              <button onClick={() => navigate('/login?mode=login')}>로그인</button>
-              <button onClick={() => navigate('/login?mode=signup')}>회원가입</button>
-            </div>
-          )}
+          <ul className="gnb">
+            <li><Link to="/">홈</Link></li>
+            <li><Link to="/chat">AI 챗봇</Link></li>
+            <li><Link to="/calendar">정책 캘린더</Link></li>
+            <li><Link to="/bookmarks">즐겨찾기</Link></li>
+            <li><Link to="/profile">마이페이지</Link></li>
+          </ul>
+
+          {/* ✅ 오른쪽 버튼 영역 */}
+          <div className="auth-buttons">
+            {isLoggedIn ? (
+              <button onClick={handleLogout}>로그아웃</button>
+            ) : (
+              <>
+                <button onClick={() => navigate('/login?mode=login')}>로그인</button>
+                <button onClick={() => navigate('/login?mode=signup')}>회원가입</button>
+              </>
+            )}
+          </div>
+
+          <button
+            className="mobile-menu-btn"
+            aria-label="모바일 메뉴 열기"
+            onClick={() => document.body.classList.toggle('menu-open')}
+          >
+            ☰
+          </button>
         </div>
       </header>
 
@@ -161,12 +172,12 @@ function Home() {
       </section>
       */}
 
-      {/* ❓ 자주 묻는 질문 섹션 */}
+      {/* ❓ 신규 정책 소개 섹션 */}
       <section className="popular">
         <div className="popular-head">
           <span className="popular-icon">📈</span>
-          <h2>자주 묻는 질문</h2>
-          <p className="section-sub">다른 분들이 많이 찾는 정책 정보를 확인해보세요</p>
+          <h2>신규 정책 안내</h2>
+<p className="section-sub">최근에 새로 발표된 주요 정책들을 한눈에 확인해보세요</p>
         </div>
         <div className="popular-grid">
           {[ 

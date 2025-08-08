@@ -16,7 +16,7 @@
   top: 0;
   z-index: 1000;
   padding: 18px 40px;
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: rgba(255, 255, 255, 0.75); /* 반투명 */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
@@ -27,43 +27,64 @@
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
-
+/* 로그인, 회원가입 버튼 */
 .auth-buttons {
   display: flex;
+    align-items: center;   /* ✅ 버튼과 텍스트 수직 정렬 */
+  justify-content: center; /* ✅ 버튼 중앙 정렬 */
   gap: 16px;
+    position: relative;
+  top: -7px; /* ✅ 수직으로 1px 올려줌 */
+
 }
 
-.auth-buttons button,
-.logout-btn {
-  background: linear-gradient(90deg, #7c3aed, #a18cd1);
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
+.auth-buttons button {
+  background: #f9fafb;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 6px 14px;          /* ⬅️ 수직 정렬에 안정적인 padding */
   font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.2s;
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: center;
+  box-shadow: none;
+
+  display: flex;              /* ✅ 내부 텍스트 수직 중앙 정렬 */
+  align-items: center;
+  justify-content: center;
+
+  height: 38px;               /* ✅ 메뉴 아이템 높이와 통일 */
+  line-height: 1.2;           /* ✅ 텍스트 줄맞춤 안정화 */
 }
 
-.auth-buttons button:hover,
-.logout-btn:hover {
-  background: linear-gradient(90deg, #a18cd1, #7c3aed);
+.auth-buttons button:hover {
+  background: #f3f4f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
+
 
 .logo {
-  font-size: 24px;
+  font-size: 35px;
   font-weight: 800;
   color: var(--blue);
   text-decoration: none;
+  display: flex;
+  align-items: center;   /* ✅ 아이콘/글씨 수직 정렬 */
+  height: 40px;          /* 버튼 높이와 맞추기 */
 }
 
+/* 내비게이션 메뉴 (GNB) */
 .gnb {
   display: flex;
-  gap: 24px;
+  gap: 12px;
   margin-inline: auto;
   list-style: none;
   padding: 0;
@@ -71,13 +92,19 @@
 
 .gnb a {
   color: #374151;
-  font-size: 15px;
+  font-size: 17px;
   text-decoration: none;
-  transition: 0.2s;
+  padding: 10px 17px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  line-height: 1.2;
 }
 
 .gnb a:hover {
-  color: var(--blue);
+  background-color: #ecfdf5; /* 연두색 배경 */
+  color: #065f46;            /* 짙은 녹색 글씨 */
 }
 
 .mobile-menu-btn {
