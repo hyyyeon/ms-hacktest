@@ -1,3 +1,4 @@
+// server 폴더의 index.js 파일
 // 서버 시작 파일 (MySQL + 라우터 연결)
 
 const express = require('express');

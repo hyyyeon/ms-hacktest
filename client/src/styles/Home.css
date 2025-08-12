@@ -38,9 +38,6 @@
     align-items: center;   /* ✅ 버튼과 텍스트 수직 정렬 */
   justify-content: center; /* ✅ 버튼 중앙 정렬 */
   gap: 16px;
-    position: relative;
-  top: -7px; /* ✅ 수직으로 1px 올려줌 */
-
 }
 
 .auth-buttons button {

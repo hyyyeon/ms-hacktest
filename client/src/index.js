@@ -1,3 +1,5 @@
+// client 폴더의 index.js 파일
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';

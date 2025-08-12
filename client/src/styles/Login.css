@@ -1,14 +1,11 @@
+/* src/styles/Login.css */
 body {
   font-family: 'Segoe UI', sans-serif;
   margin: 0;
-  height: auto;
-  overflow: auto; /* 다시 스크롤 허용 */
-  display: block;
-  background: #f9f9ff;
+  background: #f1f5ff; /* 파스텔 블루 */
 }
 
-
-/* 중앙 정렬은 여기에! */
+/* 중앙 정렬 */
 .fullscreen-center {
   min-height: 100vh;
   display: flex;
@@ -21,9 +18,8 @@ body {
   padding: 40px 30px;
   background: #fff;
   border-radius: 18px;
-  box-shadow: 0 8px 32px rgba(80, 0, 120, 0.15);
+  box-shadow: 0 8px 32px rgba(37, 99, 235, 0.15);
 }
-  
 
 .form-box {
   display: flex;
@@ -32,7 +28,7 @@ body {
 }
 
 .form-box h2 {
-  color: #7c3aed;
+  color: var(--blue, #2563eb);
   margin-bottom: 24px;
 }
 
@@ -40,21 +36,22 @@ input {
   width: 100%;
   padding: 12px;
   margin: 8px 0;
-  border: 1.5px solid #d1c4e9;
+  border: 1.5px solid #cbd5e1;
   border-radius: 8px;
   font-size: 16px;
   transition: border 0.2s;
+  box-sizing: border-box;
 }
 
 input:focus {
-  border: 1.5px solid #7c3aed;
+  border: 1.5px solid var(--blue, #2563eb);
   outline: none;
 }
 
-button {
+.form-box > form > button {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(90deg, #7c3aed, #a18cd1);
+  background: var(--blue, #2563eb);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -63,13 +60,55 @@ button {
   cursor: pointer;
   transition: background 0.2s;
 }
-
-button:hover {
-  background: linear-gradient(90deg, #a18cd1, #7c3aed);
+.form-box > form > button:hover {
+  background: #1e4fd6;
 }
 
+/* ✅ 비밀번호 토글 버튼 */
+.pw-field {
+  position: relative;
+  width: 100%;
+}
+.pw-field input {
+  padding-right: 44px; /* 아이콘 자리 확보 */
+}
+.pw-toggle-btn {
+  all: unset;                 /* 전역 버튼 스타일 완전 리셋 */
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  border-radius: 6px;         /* 포커스 때 보조 */
+}
+.pw-toggle-btn:hover {
+  color: var(--blue, #2563eb);
+}
+.pw-toggle-btn:focus-visible {
+  outline: 2px solid var(--blue, #2563eb);
+  outline-offset: 2px;
+}
+.pw-toggle-btn svg {
+  display: block;
+  pointer-events: none;
+}
+
+/* 기존 전환 링크 */
 .toggle {
-  color: #7c3aed;
+  color: var(--blue, #2563eb);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* 전환 링크 */
+.toggle {
+  color: var(--blue, #2563eb);
   cursor: pointer;
   font-weight: bold;
 }

@@ -1,61 +1,13 @@
 /* src/pages/Home.jsx */
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import '../styles/Home.css';
+import React from 'react';
+  import { Link, useNavigate } from 'react-router-dom';
+  import '../styles/Home.css';
+export default function Home() {
+   const navigate = useNavigate();
 
-function Home() {
-  const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    // 로그인 상태 확인 (예: localStorage에 user 정보가 있는지)
-    const user = localStorage.getItem('user');
-    setIsLoggedIn(!!user);
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    navigate('/');
-  };
-
-  
-  return (
-    <div className="home-page">
-      <header className="navbar">
-        <div className="navbar-inner">
-          <Link to="/" className="logo">복지랑</Link>
-
-          <ul className="gnb">
-            <li><Link to="/">홈</Link></li>
-            <li><Link to="/chat">AI 챗봇</Link></li>
-            <li><Link to="/calendar">정책 캘린더</Link></li>
-            <li><Link to="/bookmarks">즐겨찾기</Link></li>
-            <li><Link to="/profile">마이페이지</Link></li>
-          </ul>
-
-          {/* ✅ 오른쪽 버튼 영역 */}
-          <div className="auth-buttons">
-            {isLoggedIn ? (
-              <button onClick={handleLogout}>로그아웃</button>
-            ) : (
-              <>
-                <button onClick={() => navigate('/login?mode=login')}>로그인</button>
-                <button onClick={() => navigate('/login?mode=signup')}>회원가입</button>
-              </>
-            )}
-          </div>
-
-          <button
-            className="mobile-menu-btn"
-            aria-label="모바일 메뉴 열기"
-            onClick={() => document.body.classList.toggle('menu-open')}
-          >
-            ☰
-          </button>
-        </div>
-      </header>
-
+   return (
+     <div className="home-page">
       {/* 🎯 히어로 섹션 */}
       <section className="hero">
         <div className="hero__text">
@@ -258,5 +210,3 @@ function Home() {
     </div>
   );
 }
-
-export default Home;
