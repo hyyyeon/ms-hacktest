@@ -20,7 +20,7 @@ export default function Navbar() {
         <ul className="gnb">
           <li><NavLink to="/" end>홈</NavLink></li>
           <li><NavLink to="/chat">AI 챗봇</NavLink></li>
-          <li><NavLink to="/calendar">정책 캘린더</NavLink></li>
+      {/* <li><NavLink to="/calendar">정책 캘린더</NavLink></li> */}
           <li><NavLink to="/bookmarks">즐겨찾기</NavLink></li>
           <li><NavLink to="/profile">마이페이지</NavLink></li>
         </ul>

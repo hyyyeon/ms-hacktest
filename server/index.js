@@ -1,6 +1,4 @@
-// server 폴더의 index.js 파일
-// 서버 시작 파일 (MySQL + 라우터 연결)
-
+// server/index.js
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
@@ -11,22 +9,42 @@ const port = 3001;
 app.use(cors());
 app.use(express.json());
 
-// DB 연결 풀 생성
+// DB 연결 풀
 const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
-  password: '1234',
+  password: 'yoon',   // 네 환경 비번
   database: 'myusers'
 });
 
-// 모든 라우터에서 pool 사용 가능하도록 등록
 app.set('db', pool);
 
-// 👉 라우터 연결
+// 라우터
 const userRoutes = require('./routes/user');
 app.use('/user', userRoutes);
 
-// 서버 실행
+// ✅ MySQL 연결 확인 (promise 방식)
+(async () => {
+  try {
+    const conn = await pool.getConnection();
+    await conn.ping();       // 실제로 핑 찍어서 확인
+    conn.release();
+    console.log('✅ MySQL 연결 성공');
+  } catch (err) {
+    console.error('❌ MySQL 연결 실패:', err.message);
+  }
+})();
+
+// (선택) 헬스체크 엔드포인트
+app.get('/health/db', async (_req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT 1 AS ok');
+    res.json({ ok: true, rows });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`✅ 서버 실행 중: http://localhost:${port}`);
 });

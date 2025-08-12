@@ -59,6 +59,10 @@ export default function Bookmarks() {
   const [filterCategory, setFilterCategory] = useState('전체');
   const [sortBy, setSortBy] = useState('deadline'); // 'deadline' | 'recent'
 
+// 추후 이줄 삭제. 새로고침시 컴포넌트 돌아가기
+  localStorage.setItem('bookmarks', JSON.stringify(SEED));
+
+  
   // 데이터 로드 (백엔드 → 실패 시 localStorage → 없으면 SEED)
   useEffect(() => {
     let cancelled = false;

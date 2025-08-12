@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import '../styles/Login.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3001';
+
 const EyeIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
        viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -40,7 +42,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url  = isLogin ? '/user/login' : '/user/signup';
+    const url  = isLogin ? `${API_BASE}/user/login` : `${API_BASE}/user/signup`;
     const body = isLogin ? { username, password } : { username, email, password };
 
     try {
@@ -56,10 +58,10 @@ const Login = () => {
         setIsLogin(true);
         setUsername(''); setEmail(''); setPassword('');
       }
-if (isLogin && res.status === 200) {
-  localStorage.setItem('user', JSON.stringify({ username }));
-  navigate('/'); // 홈으로
-}
+      if (isLogin && res.status === 200) {
+        localStorage.setItem('user', JSON.stringify({ username }));
+        navigate('/'); // 홈으로
+      }
     } catch (err) {
       alert('오류 발생!');
       console.error(err);
