@@ -48,3 +48,7 @@ app.get('/health/db', async (_req, res) => {
 app.listen(port, () => {
   console.log(`✅ 서버 실행 중: http://localhost:${port}`);
 });
+
+
+const profileRoutes = require('./routes/profile');
+app.use('/profile', profileRoutes);  // ✅ 마이페이지 라우터 장착

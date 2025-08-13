@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Bookmarks from './pages/Bookmarks'; 
+import MyPage from './pages/MyPage';
 import './App.css';
 
 export default function App() {
@@ -18,6 +19,8 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/bookmarks" element={<Bookmarks />} /> {/* 필요 시 */}
         <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<MyPage />} />
+
       </Routes>
     </Router>
   );

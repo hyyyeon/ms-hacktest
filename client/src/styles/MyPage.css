@@ -1,0 +1,113 @@
+/* 컨테이너: 2/3 크기(약 736px)로 축소 */
+.mp {
+  max-width: 736px;      /* 기존 1100px → 2/3 수준 */
+  margin: 0 auto;
+  padding: 24px 18px 56px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+/* 타이틀 */
+.mp-title {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.mp-sub {
+  margin: 0 0 16px;
+  color: #6b7280;
+}
+
+/* 카드 */
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px 16px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 14px 40px -22px rgba(0,0,0,.18);
+}
+.card-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* 2열 그리드 */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;        /* 전체 간격도 살짝 줄임 */
+}
+@media (max-width: 820px){
+  .grid2 { grid-template-columns: 1fr; }
+}
+
+/* 필드 */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label { font-size: 13px; color: #111827; }
+
+.field input,
+.field select {
+  height: 42px;                /* 높이 축소 */
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 9px 11px;           /* 패딩 축소 */
+  font-size: 14px;             /* 글꼴 축소 */
+  outline: none;
+  background: #fff;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.field input:focus,
+.field select:focus {
+  border-color: #c7d2fe;
+  box-shadow: 0 0 0 4px rgba(99,102,241,.18);
+}
+
+/* select 화살표 */
+.select-wrap { position: relative; }
+.select-wrap select {
+  width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;  /* 화살표 여백 조정 */
+  background-size: 15px;
+  padding-right: 32px;
+}
+
+/* 액션 버튼 */
+.actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;         /* 간격 축소 */
+}
+.btn {
+  height: 42px;            /* 버튼 크기 축소 */
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;         /* 폰트 축소 */
+  cursor: pointer;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  box-shadow: 0 8px 20px -10px rgba(37,99,235,.35);
+  transition: transform .06s ease, filter .15s ease;
+}
+.btn:hover { filter: brightness(1.05); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
+
+/* 스켈레톤(간단 텍스트) */
+.skeleton { color:#6b7280; font-size:14px; padding:4px 2px; }
+
+/* 토스트 */
+.toast {
+  position: fixed; left: 50%; top: 18px; transform: translate(-50%,-12px);
+  background: #111827; color:#fff; padding:9px 12px; border-radius:10px;
+  font-size: 13px; opacity: 0; transition: opacity .2s ease, transform .2s ease; z-index: 9999;
+}
+.toast-err { background:#b91c1c; }
+.toast.show { opacity: 1; transform: translate(-50%,0); }
