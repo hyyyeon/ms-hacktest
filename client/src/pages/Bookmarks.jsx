@@ -14,42 +14,6 @@ import {
 // 백엔드 연결을 고려한 베이스 URL (없으면 로컬 3001 사용)
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3001';
 
-const SEED = [
-  {
-    id: 1,
-    title: '청년 월세 지원',
-    category: '청년',
-    deadline: '2024-02-15',
-    description:
-      '만 19~34세 청년에게 월세를 지원하는 정책으로, 월 최대 20만원까지 12개월간 지원',
-    savedDate: '2024-01-12',
-    notificationEnabled: true,
-    source: '복지로',
-    link: '#',
-  },
-  {
-    id: 2,
-    title: '소상공인 재난지원금',
-    category: '소상공인',
-    deadline: '2024-02-20',
-    description: '코로나19로 피해를 입은 소상공인을 대상으로 하는 재난지원금',
-    savedDate: '2024-01-10',
-    notificationEnabled: false,
-    source: '중소벤처기업부',
-    link: '#',
-  },
-  {
-    id: 3,
-    title: '어르신 돌봄 서비스',
-    category: '어르신',
-    deadline: '2024-02-28',
-    description: '65세 이상 어르신을 대상으로 하는 재가 돌봄 서비스',
-    savedDate: '2024-01-08',
-    notificationEnabled: true,
-    source: '보건복지부',
-    link: '#',
-  },
-];
 
 export default function Bookmarks() {
   const [loading, setLoading] = useState(true);
@@ -59,89 +23,106 @@ export default function Bookmarks() {
   const [filterCategory, setFilterCategory] = useState('전체');
   const [sortBy, setSortBy] = useState('deadline'); // 'deadline' | 'recent'
 
-// 추후 이줄 삭제. 새로고침시 컴포넌트 돌아가기
-  localStorage.setItem('bookmarks', JSON.stringify(SEED));
-
+  // 로그인한 username
+  const username = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}')?.username || ''; }
+    catch { return ''; }
+  }, []);
   
-  // 데이터 로드 (백엔드 → 실패 시 localStorage → 없으면 SEED)
+  // 데이터 로드 (백엔드만 사용)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch(`${API_BASE}/bookmarks`, { credentials: 'include' });
-        if (!res.ok) throw new Error('no-backend');
+        const qs = username ? `?username=${encodeURIComponent(username)}` : '';
+        const res = await fetch(`${API_BASE}/bookmarks${qs}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!cancelled) {
           setBookmarks(Array.isArray(data) ? data : []);
-          setLoading(false);
         }
-      } catch (_) {
-        const local = JSON.parse(localStorage.getItem('bookmarks') || '[]');
-        const data = local.length ? local : SEED;
-        if (!local.length) localStorage.setItem('bookmarks', JSON.stringify(SEED));
-        if (!cancelled) {
-          setBookmarks(data);
-          setLoading(false);
-        }
+      } catch (e) {
+        if (!cancelled) setError('목록을 불러오지 못했어요.');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [username]);
 
   // 카테고리 목록
   const categories = useMemo(() => {
-    const set = new Set(bookmarks.map((b) => b.category));
+    const set = new Set(bookmarks.map(b => b.category).filter(Boolean));
     return ['전체', ...Array.from(set)];
   }, [bookmarks]);
 
   // 필터/정렬 적용
   const view = useMemo(() => {
     const list = bookmarks
-      .filter((b) => filterCategory === '전체' || b.category === filterCategory)
+      .filter(b => filterCategory === '전체' || b.category === filterCategory)
       .slice();
     if (sortBy === 'deadline') {
-      list.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+      list.sort(
+        (a, b) =>
+          new Date(a.deadline || '9999-12-31') - new Date(b.deadline || '9999-12-31')
+      );
     } else {
-      list.sort((a, b) => new Date(b.savedDate) - new Date(a.savedDate));
+      list.sort(
+        (a, b) =>
+          new Date(b.savedDate || '1970-01-01') - new Date(a.savedDate || '1970-01-01')
+      );
     }
     return list;
   }, [bookmarks, filterCategory, sortBy]);
 
-  // 알림 토글 (낙관적 업데이트 + localStorage/백엔드 동기화)
-  const toggleNotify = (id) => {
-    setBookmarks((prev) => {
-      const next = prev.map((b) =>
-        b.id === id ? { ...b, notificationEnabled: !b.notificationEnabled } : b
-      );
-      localStorage.setItem('bookmarks', JSON.stringify(next));
-      const updated = next.find((b) => b.id === id);
-      fetch(`${API_BASE}/bookmarks/${id}`, {
+  
+  // 알림 토글 (낙관적 업데이트 + 실패 시 롤백)
+  const toggleNotify = async (id) => {
+    setBookmarks(prev => {
+      const idx = prev.findIndex(b => b.id === id);
+      if (idx < 0) return prev;
+      const next = [...prev];
+      next[idx] = { ...next[idx], notificationEnabled: !next[idx].notificationEnabled };
+      return next;
+    });
+
+    const target = bookmarks.find(b => b.id === id);
+    try {
+      await fetch(`${API_BASE}/bookmarks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notificationEnabled: updated?.notificationEnabled }),
-      }).catch(() => {});
-      return next;
-    });
+        body: JSON.stringify({ notificationEnabled: !target?.notificationEnabled }),
+      });
+    } catch {
+      // 실패 → 롤백
+      setBookmarks(prev => {
+        const idx = prev.findIndex(b => b.id === id);
+        if (idx < 0) return prev;
+        const next = [...prev];
+        next[idx] = { ...next[idx], notificationEnabled: !next[idx].notificationEnabled };
+        return next;
+      });
+      alert('알림 설정을 변경하지 못했어요.');
+    }
+  };
+  
+  // 삭제 (낙관적 업데이트 + 실패 시 롤백)
+  const removeOne = async (id) => {
+    const backup = bookmarks;
+    setBookmarks(prev => prev.filter(b => b.id !== id));
+    try {
+      await fetch(`${API_BASE}/bookmarks/${id}`, { method: 'DELETE' });
+    } catch {
+      setBookmarks(backup);
+      alert('삭제하지 못했어요.');
+    }
   };
 
-  // 삭제 (낙관적 업데이트 + 백엔드 동기화)
-  const removeOne = (id) => {
-    setBookmarks((prev) => {
-      const next = prev.filter((b) => b.id !== id);
-      localStorage.setItem('bookmarks', JSON.stringify(next));
-      fetch(`${API_BASE}/bookmarks/${id}`, { method: 'DELETE' }).catch(() => {});
-      return next;
-    });
-  };
-
+ 
   return (
     <div className="home-page">
-      {/* ⬆️ Navbar는 App.js에서 공통 렌더링됨 */}
-
       <main className="bm-container">
         <div className="bm-header">
           <h1>즐겨찾기</h1>
@@ -186,7 +167,7 @@ export default function Bookmarks() {
         {loading ? (
           <div className="bm-empty">불러오는 중…</div>
         ) : error ? (
-          <div className="bm-empty">오류가 발생했어요. 새로고침 해보세요.</div>
+          <div className="bm-empty">{error}</div>
         ) : view.length === 0 ? (
           <div className="bm-empty">
             <div className="bm-empty-icon">🔖</div>
@@ -200,7 +181,7 @@ export default function Bookmarks() {
                 <header className="bm-card-head">
                   <div className="bm-title-wrap">
                     <h3 className="bm-title">{item.title}</h3>
-                    <span className="bm-badge">{item.category}</span>
+                    {item.category && <span className="bm-badge">{item.category}</span>}
                   </div>
                   <button
                     className="bm-icon-btn"
@@ -212,16 +193,16 @@ export default function Bookmarks() {
                   </button>
                 </header>
 
-                <p className="bm-desc">{item.description}</p>
+                {item.description && <p className="bm-desc">{item.description}</p>}
 
                 <div className="bm-meta">
                   <div className="bm-meta-row">
                     <span className="bm-meta-item">
                       <FaCalendarAlt className="muted" style={{ marginRight: 6 }} />
-                      마감: {item.deadline}
+                      마감: {item.deadline || '—'}
                     </span>
-                    <span className="bm-meta-item">출처: {item.source}</span>
-                    <span className="bm-meta-item">저장: {item.savedDate}</span>
+                    {item.source && <span className="bm-meta-item">출처: {item.source}</span>}
+                    {item.savedDate && <span className="bm-meta-item">저장: {item.savedDate}</span>}
                   </div>
                 </div>
 

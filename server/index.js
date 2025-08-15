@@ -13,42 +13,34 @@ app.use(express.json());
 const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
-  password: 'yoon',   // 네 환경 비번
+  password: 'yoon',   // @@@ 본인 환경 비번 @@@
   database: 'myusers'
 });
-
 app.set('db', pool);
 
 // 라우터
 const userRoutes = require('./routes/user');
+const profileRoutes = require('./routes/profile');
+const bookmarksRoutes = require('./routes/bookmarks');
+
 app.use('/user', userRoutes);
+app.use('/profile', profileRoutes);
+app.use('/bookmarks', bookmarksRoutes);
 
-// ✅ MySQL 연결 확인 (promise 방식)
-(async () => {
-  try {
-    const conn = await pool.getConnection();
-    await conn.ping();       // 실제로 핑 찍어서 확인
-    conn.release();
-    console.log('✅ MySQL 연결 성공');
-  } catch (err) {
-    console.error('❌ MySQL 연결 실패:', err.message);
-  }
-})();
-
-// (선택) 헬스체크 엔드포인트
+// DB 서버 상태 점검
 app.get('/health/db', async (_req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT 1 AS ok');
-    res.json({ ok: true, rows });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
+  try { const [rows] = await pool.query('SELECT 1 AS ok'); res.json({ ok: true, rows }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// MySQL 연결 확인
+(async () => {
+  try { const conn = await pool.getConnection(); await conn.ping(); conn.release();
+        console.log('✅ MySQL 연결 성공'); }
+  catch (err) { console.error('❌ MySQL 연결 실패:', err.message); }
+})();
+
+// 마지막에 listen
 app.listen(port, () => {
   console.log(`✅ 서버 실행 중: http://localhost:${port}`);
 });
-
-
-const profileRoutes = require('./routes/profile');
-app.use('/profile', profileRoutes);  // ✅ 마이페이지 라우터 장착
