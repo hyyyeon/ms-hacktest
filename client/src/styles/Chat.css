@@ -1,48 +1,210 @@
-/* client/src/styles/Chat.css */
-.chat-page { display: flex; flex-direction: column; height: calc(100dvh - 64px); }
-.chat-header { padding: 16px 20px; border-bottom: 1px solid #eee; background: #fff; }
-.chat-main { flex: 1; overflow: hidden; background: #fafafa; }
-.chat-list { list-style: none; margin: 0; padding: 16px; height: 100%; overflow-y: auto; }
+/* 레이아웃 */
+.chat-page { display:flex; flex-direction:column; min-height:100dvh; background: linear-gradient(180deg,#f7f8fb, #fff); }
+.chat-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #eee; background:#fff; position:sticky; top:0; z-index:10; }
+.chat-header-left{ display:flex; gap:12px; align-items:center; }
+.chat-title{ margin:0; font-size:22px; font-weight:800; color:#111; }
+.chat-sub{ margin:2px 0 0; font-size:13px; color:#6b7280; }
+.brand-chip{ font-size:13px; color:#2563eb; font-weight:600; display:flex; align-items:center; gap:6px; }
 
-.chat-item { display: flex; margin: 8px 0; }
-.chat-item.user { justify-content: flex-end; }
-.chat-item.assistant { justify-content: flex-start; }
+.icon-btn{ width:36px; height:36px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; }
+.icon-btn:hover{ background:#f8fafc; }
 
-.bubble { max-width: 72ch; padding: 10px 12px; border-radius: 12px; line-height: 1.45; background: #fff; border: 1px solid #eee; }
-.chat-item.user .bubble { background: #2563eb; color: #fff; border-color: #2563eb; }
+.chat-main{ flex:1; display:flex; justify-content:center; padding:24px 16px; }
+.chat-card{ width: min(100%, 960px); background:#fff; border:1px solid #e5e7eb; border-radius:14px; display:flex; flex-direction:column; min-height:520px; }
+.chat-scroll{ flex:1; overflow:auto; padding:20px; background:#fafafa; border-radius:14px 14px 0 0; }
 
-.chat-inputbar { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #eee; background: #fff; }
-.chat-inputbar input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; outline: none; }
-.chat-inputbar button { padding: 10px 14px; border: 0; border-radius: 10px; background: #111; color: #fff; }
-.chat-inputbar button:disabled { opacity: .5; cursor: not-allowed; }
+/* 빈 상태 */
+.empty-state{ text-align:center; padding:60px 0; color:#6b7280; }
+.empty-icon{ width:64px; height:64px; margin:0 auto 12px; font-size:34px; display:grid; place-items:center; border-radius:50%; background:linear-gradient(135deg,#4f46e5,#60a5fa); color:#fff; }
+.empty-title{ font-size:18px; color:#111; margin:0 0 6px; }
+.empty-sub{ margin:0; }
 
-/* --- typing indicator --- */
-.typing { display:flex; gap:4px; align-items:center; margin:8px 0; }
-.typing .dot {
-  width: 6px; height: 6px; border-radius: 50%; background:#9ca3af;
-  animation: bounce 1s infinite ease-in-out;
+/* 채팅 버블 */
+.chat-item{ display:flex; margin:10px 0; }
+.chat-item.user{ justify-content:flex-end; }
+.chat-item.assistant{ justify-content:flex-start; }
+.bubble{ max-width:70ch; padding:10px 12px; border-radius:12px; line-height:1.45; background:#fff; border:1px solid #e5e7eb; }
+.bubble.me{ background:#2563eb; color:#fff; border-color:#2563eb; }
+.bubble-text{ white-space:pre-wrap; font-size:14px; }
+.sources{ margin-top:8px; padding-top:8px; border-top:1px dashed #e5e7eb; }
+.sources-title{ font-size:12px; color:#6b7280; margin-bottom:4px; }
+.source-link{ display:block; font-size:12px; color:#2563eb; text-decoration:none; }
+.source-link:hover{ text-decoration:underline; }
+
+/* 타이핑 점프 */
+.dots i{ display:inline-block; width:7px; height:7px; margin-right:3px; background:#9ca3af; border-radius:50%; animation:bounce 1s infinite ease-in-out; }
+.dots i:nth-child(2){ animation-delay:.15s }
+.dots i:nth-child(3){ animation-delay:.3s }
+@keyframes bounce{ 0%,80%,100%{ transform:translateY(0) } 40%{ transform:translateY(-5px) } }
+
+/* 입력 영역 */
+.chat-input-row{ display:flex; gap:8px; padding:12px; border-top:1px solid #e5e7eb; background:#fff; border-radius:0 0 14px 14px; }
+.chat-input{ flex:1; resize:none; padding:12px 14px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px; line-height:1.4; max-height:160px; }
+.chat-input:focus{ outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+.send-btn{ width:42px; height:42px; border-radius:10px; border:0; background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; cursor:pointer; }
+.send-btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* 정책 카드 */
+.policy-card{ background:linear-gradient(180deg,#fff, #f5f7ff); border:2px solid rgba(37,99,235,.2); border-radius:12px; padding:14px; max-width:90%; }
+.policy-head{ display:flex; gap:10px; align-items:center; margin-bottom:8px; }
+.policy-icon{ font-size:18px; color:#2563eb; }
+.policy-title{ font-size:16px; font-weight:800; color:#111; }
+.badge{ background:#eef2ff; color:#334155; padding:2px 8px; border-radius:999px; font-size:12px; margin-left:6px; }
+.policy-list{ list-style:none; padding:0; margin:8px 0 0; color:#475569; font-size:14px; }
+.policy-list li{ margin:6px 0; }
+.policy-list b{ color:#111; margin-right:6px; }
+.link{ color:#2563eb; text-decoration:none; }
+.link:hover{ text-decoration:underline; }
+.policy-actions{ display:flex; gap:8px; border-top:1px solid #e5e7eb; margin-top:12px; padding-top:10px; }
+.btn-outline{ flex:1; height:36px; border:1px solid #d1d5db; background:#fff; border-radius:8px; cursor:pointer; }
+.btn-outline:hover{ background:#f8fafc; }
+
+/* 드로어 */
+.chat-drawer{ position:fixed; inset:0 auto 0 0; width:320px; max-width:88vw; background:#fff; border-right:1px solid #e5e7eb; transform:translateX(-100%); transition:transform .25s ease; z-index:20; display:flex; flex-direction:column; }
+.chat-drawer.open{ transform:translateX(0); }
+.drawer-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.25); z-index:15; }
+.drawer-header{ display:flex; align-items:center; gap:8px; padding:14px; border-bottom:1px solid #eee; }
+.drawer-header h2{ font-size:16px; font-weight:700; margin:0; }
+.drawer-body{ padding:14px; display:flex; flex-direction:column; gap:12px; }
+.btn-primary{ height:36px; border:0; border-radius:8px; background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; font-weight:600; cursor:pointer; }
+.search-box{ display:flex; align-items:center; gap:8px; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; }
+.search-box input{ border:0; outline:0; flex:1; font-size:14px; }
+.drawer-section-label{ font-size:13px; color:#6b7280; display:flex; align-items:center; gap:6px; padding:2px 0; }
+.history-scroll{ overflow:auto; max-height:calc(100dvh - 240px); }
+.history-item{ display:flex; gap:8px; padding:10px; border-radius:10px; border:1px solid transparent; cursor:pointer; }
+.history-item:hover{ background:#f8fafc; }
+.history-item.active{ background:#eef2ff; border-color:#dbeafe; }
+.history-main{ flex:1; min-width:0; }
+.history-title{ font-size:14px; font-weight:700; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.history-last{ font-size:12px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:2px 0; }
+.history-time{ font-size:11px; color:#9ca3af; }
+.trash{ width:28px; height:28px; border-radius:6px; border:0; background:#fff; }
+.trash:hover{ background:#fee2e2; }
+
+/* 네비바(z-index:1000) 위로 드로어/백드롭을 띄우기 */
+.chat-drawer { z-index: 1201 !important; }
+.drawer-backdrop { z-index: 1200 !important; }
+
+
+/* 채팅 페이지 레이아웃 */
+/* 전역 네비 높이만큼 빼서 화면 높이 계산 (필요시 56~72px로 조정) */
+:root { --navbar-h: 64px; }
+
+/* 바깥쪽은 스크롤 금지 + 남은 높이를 꽉 채움 */
+.chat-page{
+  height: calc(100dvh - var(--navbar-h));
+  min-height: 0;     /* flex 컨테이너 오버플로우 방지 */
+  overflow: hidden;  /* 바깥 스크롤 제거 */
 }
-.typing .dot:nth-child(2){ animation-delay:.15s; }
-.typing .dot:nth-child(3){ animation-delay:.3s; }
-@keyframes bounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity: .6; }
-  40% { transform: scale(1); opacity: 1; }
+
+/* 가운데 카드가 남은 높이를 전부 차지하도록 */
+.chat-main{ 
+  flex: 1;
+  min-height: 0;     /* 중요: 내부 스크롤이 동작하려면 0 */
 }
 
-/* --- 추천 질문 --- */
-.suggest { margin: 16px 0 8px; text-align:center; }
-.suggest h3 { margin: 0 0 8px; font-size: 20px; font-weight: 800; }
-.suggest .muted { color:#6b7280; margin: 0 0 16px; }
-.suggest-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:12px; }
-@media (max-width: 900px){ .suggest-grid { grid-template-columns: 1fr; } }
-.suggest-card {
-  background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px;
-  box-shadow:0 6px 18px -12px rgba(0,0,0,.15);
+/* 카드 전체가 세로로 꽉 차고, 메시지 영역만 스크롤 */
+.chat-card{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* min-height: 520px;  // 이 줄이 있다면 지워도 됨 */
 }
-.suggest-card h4 { margin:0 0 10px; font-size:16px; }
-.suggest-list { display:flex; flex-direction:column; gap:8px; }
-.suggest-btn {
-  width:100%; text-align:left; border:1px solid #e5e7eb; background:#fafafa;
-  border-radius:8px; padding:10px; cursor:pointer; font-size:14px;
+
+/* 메시지 영역만 스크롤되는 곳 */
+.chat-scroll{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
-.suggest-btn:hover { background:#f3f4f6; }
+
+/* ── @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ── */
+/* ── 추천 질문(첫 화면 큰 블록) ── */
+.sugg-block{
+  margin-top:20px;
+  padding:16px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  background:#fff;
+}
+.sugg-title{ font-weight:700; color:#111; margin-bottom:10px; }
+.sugg-grid{
+  display:grid;
+  gap:10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.chip{
+  display:flex; align-items:center; justify-content:flex-start;
+  gap:8px; width:100%;
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  background:#f8fafc;
+  font-size:14px; color:#374151; cursor:pointer;
+}
+.chip:hover{ background:#eef2ff; border-color:#dbeafe; }
+
+/* ── 입력창 위 작은 칩(상시) ── */
+.sugg-inline{
+  padding:8px 12px;
+  border-top:1px dashed #e5e7eb;
+  background:#fff;
+  display:flex; gap:8px; overflow-x:auto;
+}
+.chip.small{ width:auto; padding:8px 12px; font-size:13px; white-space:nowrap; }
+
+/* 없으면 Chat.css 맨 아래에 추가 */
+.search-box { padding-left: 12px; } /* span 제거 시 좌측 여백 보정 */
+
+/* ── 추천질문 블록 레이아웃(가운데 폭 제한 + 중앙 정렬) ── */
+.sugg-block{
+  margin: 18px auto 0;
+  padding: 14px 16px;
+  max-width: 980px;            /* 칩이 과하게 넓어지지 않도록 컨테이너 폭 제한 */
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+.sugg-title{
+  text-align: center;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 10px;
+}
+
+/* ── 칩 컨테이너: Grid → Flex 로 전환하여 칩 크기를 내용에 맞춤 ── */
+.sugg-grid{
+  display: flex;
+  gap: 10px 12px;
+  flex-wrap: wrap;             /* 줄바꿈 허용 */
+  justify-content: center;     /* 중앙 정렬 */
+}
+
+/* ── 칩(알약 버튼) 스타일: 너비 자동, 둥근 모양, 살짝 배경 ── */
+.chip{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 9999px;       /* 완전한 알약 모양 */
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+  width: auto;                 /* ⬅️ 가장 중요: 100% 제거 */
+  max-width: 100%;
+  white-space: nowrap;         /* 한 줄 유지(원하면 삭제해서 줄바꿈 허용) */
+}
+.chip:hover{ background:#eef2ff; border-color:#dbeafe; }
+
+/* ── 반응형: 모바일에서 너무 붙으면 2~3줄로 자동 감싸기 ── */
+@media (max-width: 768px){
+  .sugg-block{ padding: 12px; }
+  .chip{ padding: 9px 12px; font-size: 13px; }
+  .sugg-grid{ justify-content: center; }
+}
+.chip{ box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+.chip:hover{ box-shadow: 0 1px 0 rgba(37,99,235,.1); }
