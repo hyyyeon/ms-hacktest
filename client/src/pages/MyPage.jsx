@@ -1,6 +1,7 @@
 // src/pages/MyPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import "../styles/MyPage.css";
+import { toast, n, nNum } from '../utils';
 
 const API = process.env.REACT_APP_API_BASE || "http://localhost:3001";
 
@@ -114,8 +115,8 @@ const changePassword = async (e) => {
       method: "PATCH",
       headers: { "Content-Type":"application/json" },
       body: JSON.stringify({
-        currentPassword: pw.current,   // ✅ 추가
-        newPassword: pw.next           // ✅ 그대로
+        currentPassword: pw.current,  
+        newPassword: pw.next      
       })
     });
     const data = await res.json();
@@ -213,17 +214,17 @@ const changePassword = async (e) => {
         <form className="grid2" onSubmit={changePassword}>
           <div className="field">
             <label>현재 비밀번호</label>
-            <input type="password" value={pw.current} onChange={(e)=>setPw({...pw, current:e.target.value})} placeholder="(간이 버전: 서버 검증 없음)" />
+            <input type="password" value={pw.current} onChange={(e)=>setPw({...pw, current:e.target.value})} placeholder="(현재 비밀번호 입력)" />
           </div>
 
           <div className="field">
             <label>새 비밀번호</label>
-            <input type="password" value={pw.next} onChange={(e)=>setPw({...pw, next:e.target.value})} />
+            <input type="password" value={pw.next} onChange={(e)=>setPw({...pw, next:e.target.value})} placeholder="(변경할 비밀번호 입력)" />
           </div>
 
           <div className="field">
             <label>새 비밀번호 확인</label>
-            <input type="password" value={pw.confirm} onChange={(e)=>setPw({...pw, confirm:e.target.value})} />
+            <input type="password" value={pw.confirm} onChange={(e)=>setPw({...pw, confirm:e.target.value})} placeholder="(변경할 비밀번호 재입력)" />
           </div>
 
           <div className="actions">
@@ -233,16 +234,4 @@ const changePassword = async (e) => {
       </section>
     </main>
   );
-}
-
-/* helpers */
-function n(v){ return v==="" ? null : v; }
-function nNum(v){ if(v===""||v==null) return null; const n=Number(v); return Number.isNaN(n)?null:n; }
-function toast(msg, err=false){
-  const el = document.createElement("div");
-  el.className = "toast " + (err? "toast-err":"");
-  el.textContent = msg;
-  document.body.appendChild(el);
-  requestAnimationFrame(()=> el.classList.add("show"));
-  setTimeout(()=>{ el.classList.remove("show"); setTimeout(()=>el.remove(),250); }, 1800);
 }

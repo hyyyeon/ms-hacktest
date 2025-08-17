@@ -1,0 +1,48 @@
+/* client/src/styles/Chat.css */
+.chat-page { display: flex; flex-direction: column; height: calc(100dvh - 64px); }
+.chat-header { padding: 16px 20px; border-bottom: 1px solid #eee; background: #fff; }
+.chat-main { flex: 1; overflow: hidden; background: #fafafa; }
+.chat-list { list-style: none; margin: 0; padding: 16px; height: 100%; overflow-y: auto; }
+
+.chat-item { display: flex; margin: 8px 0; }
+.chat-item.user { justify-content: flex-end; }
+.chat-item.assistant { justify-content: flex-start; }
+
+.bubble { max-width: 72ch; padding: 10px 12px; border-radius: 12px; line-height: 1.45; background: #fff; border: 1px solid #eee; }
+.chat-item.user .bubble { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+.chat-inputbar { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #eee; background: #fff; }
+.chat-inputbar input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; outline: none; }
+.chat-inputbar button { padding: 10px 14px; border: 0; border-radius: 10px; background: #111; color: #fff; }
+.chat-inputbar button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* --- typing indicator --- */
+.typing { display:flex; gap:4px; align-items:center; margin:8px 0; }
+.typing .dot {
+  width: 6px; height: 6px; border-radius: 50%; background:#9ca3af;
+  animation: bounce 1s infinite ease-in-out;
+}
+.typing .dot:nth-child(2){ animation-delay:.15s; }
+.typing .dot:nth-child(3){ animation-delay:.3s; }
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: .6; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* --- 추천 질문 --- */
+.suggest { margin: 16px 0 8px; text-align:center; }
+.suggest h3 { margin: 0 0 8px; font-size: 20px; font-weight: 800; }
+.suggest .muted { color:#6b7280; margin: 0 0 16px; }
+.suggest-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:12px; }
+@media (max-width: 900px){ .suggest-grid { grid-template-columns: 1fr; } }
+.suggest-card {
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px;
+  box-shadow:0 6px 18px -12px rgba(0,0,0,.15);
+}
+.suggest-card h4 { margin:0 0 10px; font-size:16px; }
+.suggest-list { display:flex; flex-direction:column; gap:8px; }
+.suggest-btn {
+  width:100%; text-align:left; border:1px solid #e5e7eb; background:#fafafa;
+  border-radius:8px; padding:10px; cursor:pointer; font-size:14px;
+}
+.suggest-btn:hover { background:#f3f4f6; }
