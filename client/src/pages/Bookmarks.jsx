@@ -1,84 +1,65 @@
 /* src/pages/Bookmarks.jsx */
 import React, { useEffect, useMemo, useState } from 'react';
-import '../styles/Home.css';        // 공통 색상/레아이웃 일부 재사용
-import '../styles/Bookmarks.css';   // 즐겨찾기 전용 스타일
-import {
-  FaTrash,
-  FaCalendarAlt,
-  FaBell,
-  FaLink,
-  FaFilter,
-  FaSortAmountDown
-} from 'react-icons/fa';
+import '../styles/Home.css';
+import '../styles/Bookmarks.css';
+import { FaTrash, FaCalendarAlt, FaBell, FaLink, FaFilter, FaSortAmountDown } from 'react-icons/fa';
 
-// 백엔드 연결을 고려한 베이스 URL (없으면 로컬 3001 사용)
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:3001';
-
+// ✅ 백엔드 베이스 + /api 접두사 강제
+const API = ((process.env.REACT_APP_API_BASE || 'http://localhost:3001').replace(/\/$/, '')) + '/api';
 
 export default function Bookmarks() {
   const [loading, setLoading] = useState(true);
   const [bookmarks, setBookmarks] = useState([]);
   const [error, setError] = useState('');
-
   const [filterCategory, setFilterCategory] = useState('전체');
   const [sortBy, setSortBy] = useState('deadline'); // 'deadline' | 'recent'
 
-  // 로그인한 username
   const username = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('user') || '{}')?.username || ''; }
     catch { return ''; }
   }, []);
-  
-  // 데이터 로드 (백엔드만 사용)
+
   useEffect(() => {
-    let cancelled = false;
+    let cancel = false;
     (async () => {
       setLoading(true);
       setError('');
       try {
         const qs = username ? `?username=${encodeURIComponent(username)}` : '';
-        const res = await fetch(`${API_BASE}/bookmarks${qs}`);
+        const res = await fetch(`${API}/bookmarks${qs}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (!cancelled) {
-          setBookmarks(Array.isArray(data) ? data : []);
-        }
+        if (!cancel) setBookmarks(Array.isArray(data) ? data : []);
       } catch (e) {
-        if (!cancelled) setError('목록을 불러오지 못했어요.');
+        if (!cancel) setError('목록을 불러오지 못했어요.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancel) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => { cancel = true; };
   }, [username]);
 
-  // 카테고리 목록
   const categories = useMemo(() => {
     const set = new Set(bookmarks.map(b => b.category).filter(Boolean));
     return ['전체', ...Array.from(set)];
   }, [bookmarks]);
 
-  // 필터/정렬 적용
   const view = useMemo(() => {
     const list = bookmarks
       .filter(b => filterCategory === '전체' || b.category === filterCategory)
       .slice();
     if (sortBy === 'deadline') {
-      list.sort(
-        (a, b) =>
-          new Date(a.deadline || '9999-12-31') - new Date(b.deadline || '9999-12-31')
+      list.sort((a, b) =>
+        new Date(a.deadline || '9999-12-31') - new Date(b.deadline || '9999-12-31')
       );
     } else {
-      list.sort(
-        (a, b) =>
-          new Date(b.savedDate || '1970-01-01') - new Date(a.savedDate || '1970-01-01')
+      list.sort((a, b) =>
+        new Date(b.savedDate || '1970-01-01') - new Date(a.savedDate || '1970-01-01')
       );
     }
     return list;
   }, [bookmarks, filterCategory, sortBy]);
 
-  
-  // 알림 토글 (낙관적 업데이트 + 실패 시 롤백)
   const toggleNotify = async (id) => {
     setBookmarks(prev => {
       const idx = prev.findIndex(b => b.id === id);
@@ -90,13 +71,13 @@ export default function Bookmarks() {
 
     const target = bookmarks.find(b => b.id === id);
     try {
-      await fetch(`${API_BASE}/bookmarks/${id}`, {
+      const res = await fetch(`${API}/bookmarks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notificationEnabled: !target?.notificationEnabled }),
       });
+      if (!res.ok) throw new Error();
     } catch {
-      // 실패 → 롤백
       setBookmarks(prev => {
         const idx = prev.findIndex(b => b.id === id);
         if (idx < 0) return prev;
@@ -107,20 +88,19 @@ export default function Bookmarks() {
       alert('알림 설정을 변경하지 못했어요.');
     }
   };
-  
-  // 삭제 (낙관적 업데이트 + 실패 시 롤백)
+
   const removeOne = async (id) => {
     const backup = bookmarks;
     setBookmarks(prev => prev.filter(b => b.id !== id));
     try {
-      await fetch(`${API_BASE}/bookmarks/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API}/bookmarks/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
     } catch {
       setBookmarks(backup);
       alert('삭제하지 못했어요.');
     }
   };
 
- 
   return (
     <div className="home-page">
       <main className="bm-container">
@@ -129,7 +109,6 @@ export default function Bookmarks() {
           <p className="bm-sub">저장한 정책들을 관리하고 알림을 설정하세요</p>
         </div>
 
-        {/* 필터/정렬 바 */}
         <div className="bm-toolbar">
           <div className="bm-filter">
             <FaFilter className="muted" size={16} />
@@ -163,7 +142,6 @@ export default function Bookmarks() {
           </div>
         </div>
 
-        {/* 목록 */}
         {loading ? (
           <div className="bm-empty">불러오는 중…</div>
         ) : error ? (
@@ -183,12 +161,7 @@ export default function Bookmarks() {
                     <h3 className="bm-title">{item.title}</h3>
                     {item.category && <span className="bm-badge">{item.category}</span>}
                   </div>
-                  <button
-                    className="bm-icon-btn"
-                    aria-label="삭제"
-                    onClick={() => removeOne(item.id)}
-                    title="삭제"
-                  >
+                  <button className="bm-icon-btn" aria-label="삭제" onClick={() => removeOne(item.id)} title="삭제">
                     <FaTrash size={16} />
                   </button>
                 </header>
@@ -221,12 +194,7 @@ export default function Bookmarks() {
                     </span>
                   </label>
 
-                  <a
-                    className="bm-btn-outline"
-                    href={item.link || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <a className="bm-btn-outline" href={item.link || '#'} target="_blank" rel="noopener noreferrer">
                     <FaLink style={{ marginRight: 6 }} />
                     신청하러 가기
                   </a>
