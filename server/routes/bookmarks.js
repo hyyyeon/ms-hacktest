@@ -10,11 +10,11 @@ function db(req) {
 
 async function getUserIdByUsername(pool, username) {
   if (!username) return null;
-  const [rows] = await pool.query('SELECT id FROM users WHERE username=?', [username]);
+  const [rows] = await pool.query('SELECT id FROM users WHERE username=? OR email=?', [username, username]);
   return rows?.[0]?.id ?? null;
 }
 
-/** 목록 조회: GET /bookmarks?username=user1 */
+/** 목록 조회: GET /api/bookmarks?username=user1 */
 router.get('/', async (req, res) => {
   try {
     const pool = db(req);
@@ -25,9 +25,9 @@ router.get('/', async (req, res) => {
     const [rows] = await pool.query(
       `SELECT
          id, title, category, description, source, link,
-         DATE_FORMAT(deadline,'%Y-%m-%d') AS deadline,
-         DATE_FORMAT(saved_at,'%Y-%m-%d') AS savedDate,
-         notification_enabled AS notificationEnabled
+         DATE_FORMAT(deadline,'%Y-%m-%d')   AS deadline,
+         DATE_FORMAT(saved_at,'%Y-%m-%d')   AS savedDate,
+         notification_enabled               AS notificationEnabled
        FROM bookmarks
        WHERE user_id=?
        ORDER BY COALESCE(deadline,'9999-12-31') ASC, id DESC`,
@@ -35,13 +35,12 @@ router.get('/', async (req, res) => {
     );
     res.json(rows);
   } catch (e) {
-    console.error(e); res.status(500).json({ message: '서버 오류' });
+    console.error(e);
+    res.status(500).json({ message: '서버 오류' });
   }
 });
 
-/** 추가: POST /bookmarks
- * body: { username OR user_id, title, category, description, source, link, deadline(YYYY-MM-DD) }
- */
+/** 추가: POST /api/bookmarks */
 router.post('/', async (req, res) => {
   try {
     const pool = db(req);
@@ -58,11 +57,12 @@ router.post('/', async (req, res) => {
     );
     res.status(201).json({ id: r.insertId, message: '즐겨찾기에 저장되었습니다.' });
   } catch (e) {
-    console.error(e); res.status(500).json({ message: '서버 오류' });
+    console.error(e);
+    res.status(500).json({ message: '서버 오류' });
   }
 });
 
-/** 알림 토글: PATCH /bookmarks/:id { notificationEnabled: boolean } */
+/** 알림 토글: PATCH /api/bookmarks/:id { notificationEnabled: boolean } */
 router.patch('/:id', async (req, res) => {
   try {
     const pool = db(req);
@@ -74,11 +74,12 @@ router.patch('/:id', async (req, res) => {
     );
     res.json({ message: '알림 설정이 변경되었습니다.' });
   } catch (e) {
-    console.error(e); res.status(500).json({ message: '서버 오류' });
+    console.error(e);
+    res.status(500).json({ message: '서버 오류' });
   }
 });
 
-/** 삭제: DELETE /bookmarks/:id */
+/** 삭제 */
 router.delete('/:id', async (req, res) => {
   try {
     const pool = db(req);
@@ -86,7 +87,8 @@ router.delete('/:id', async (req, res) => {
     await pool.query('DELETE FROM bookmarks WHERE id=?', [id]);
     res.json({ message: '삭제되었습니다.' });
   } catch (e) {
-    console.error(e); res.status(500).json({ message: '서버 오류' });
+    console.error(e);
+    res.status(500).json({ message: '서버 오류' });
   }
 });
 

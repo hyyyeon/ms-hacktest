@@ -27,7 +27,7 @@ const Login = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
-  const modeFromUrl = queryParams.get('mode'); // 'signup' or null
+  const modeFromUrl = queryParams.get('mode'); // 'signup' | null
 
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
@@ -36,35 +36,48 @@ const Login = () => {
   const [showPw, setShowPw]     = useState(false);
 
   useEffect(() => {
-    setIsLogin(modeFromUrl !== 'signup');
+    setIsLogin(modeFromUrl !== 'signup'); // ?mode=signup 이면 회원가입 폼
     window.scrollTo(0, 0);
   }, [modeFromUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url  = isLogin ? `${API_BASE}/user/login` : `${API_BASE}/user/signup`;
-    const body = isLogin ? { username, password } : { username, email, password };
 
     try {
-      const res  = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      alert(data.message);
+      if (isLogin) {
+        // ✅ 로그인: /api/users/login
+        const res = await fetch(`${API_BASE}/api/users/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usernameOrEmail: username, // 아이디 또는 이메일 입력란을 username에 재사용
+            password,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.message || '로그인 실패');
 
-      if (!isLogin && res.status === 201) {
+        // 사용자 정보 저장(간단)
+        localStorage.setItem('user', JSON.stringify(data.user));
+        alert('로그인 성공!');
+        navigate('/');
+      } else {
+        // ✅ 회원가입: /api/users/register
+        const res = await fetch(`${API_BASE}/api/users/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.message || '회원가입 실패');
+
+        alert('회원가입 완료! 로그인 해주세요.');
         setIsLogin(true);
-        setUsername(''); setEmail(''); setPassword('');
-      }
-      if (isLogin && res.status === 200) {
-        localStorage.setItem('user', JSON.stringify({ username }));
-        navigate('/'); // 홈으로
+        setPassword('');
       }
     } catch (err) {
-      alert('오류 발생!');
       console.error(err);
+      alert('요청 처리 중 오류가 발생했습니다.');
     }
   };
 
@@ -75,14 +88,16 @@ const Login = () => {
           <h2>{isLogin ? '로그인' : '회원가입'}</h2>
 
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+            {/* 아이디(또는 이메일) */}
             <input
               type="text"
-              placeholder="아이디"
+              placeholder={isLogin ? '아이디 또는 이메일' : '아이디'}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
 
+            {/* 회원가입 때만 이메일 입력 */}
             {!isLogin && (
               <input
                 type="email"
@@ -93,6 +108,7 @@ const Login = () => {
               />
             )}
 
+            {/* 비밀번호 */}
             <div className="pw-field">
               <input
                 type={showPw ? 'text' : 'password'}
