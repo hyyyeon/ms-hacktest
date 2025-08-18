@@ -1,48 +1,74 @@
 import React from 'react';
 import './PolicyCard.css';
 
-export default function PolicyCard({ data, onBookmark, onCalendar }) {
-  // data: { title, icon, target, period, support, method, link:{title,url} }
+/** 정책 카드 (단일 정책)
+ * data: { title, target, period, support, method, link:{title,url} }
+ */
+export default function PolicyCard({ data, onBookmark }) {
+  const d = {
+    title: data?.title || '정책',
+    target: data?.target || '정보 없음',
+    period: data?.period || '정보 없음',
+    support: data?.support || '정보 없음',
+    method: data?.method || '정보 없음',
+    link: data?.link || { title: '', url: '' },
+  };
+
   return (
     <div className="pcard">
-      <div className="pcard-head">
-        <div className="pcard-icon">{data.icon}</div>
-        <div className="pcard-title">
-          <h3>{data.title}</h3>
-          <span className="pcard-badge">2025</span>
-        </div>
-      </div>
+      <h3 className="pcard-title">{d.title}</h3>
 
-      <div className="pcard-body">
-        <div className="pcard-row">
-          <span className="pcard-label">지원 대상</span>
-          <p>{data.target}</p>
-        </div>
-        <div className="pcard-row">
-          <span className="pcard-label">신청 기간</span>
-          <p>{data.period}</p>
-        </div>
-        <div className="pcard-row">
-          <span className="pcard-label">지원 내용</span>
-          <p>{data.support}</p>
-        </div>
-        <div className="pcard-row">
-          <span className="pcard-label">신청 방법</span>
-          <p>{data.method}</p>
-        </div>
-        <div className="pcard-row">
-          <span className="pcard-label">공식 링크</span>
-          <p>
-            <a href={data.link.url} target="_blank" rel="noreferrer">
-              {data.link.title}
-            </a>
-          </p>
-        </div>
-      </div>
+      <ul className="pcard-list">
+        <li>
+          <span className="pcard-ico">🎯</span>
+          <div>
+            <div className="pcard-label">지원 대상</div>
+            <div className="pcard-text">{d.target}</div>
+          </div>
+        </li>
+        <li>
+          <span className="pcard-ico">🗓️</span>
+          <div>
+            <div className="pcard-label">신청 기간</div>
+            <div className="pcard-text">{d.period}</div>
+          </div>
+        </li>
+        <li>
+          <span className="pcard-ico">💰</span>
+          <div>
+            <div className="pcard-label">지원 내용</div>
+            <div className="pcard-text">{d.support}</div>
+          </div>
+        </li>
+        <li>
+          <span className="pcard-ico">📝</span>
+          <div>
+            <div className="pcard-label">신청 방법</div>
+            <div className="pcard-text">{d.method}</div>
+          </div>
+        </li>
+        <li>
+          <span className="pcard-ico">🔗</span>
+          <div>
+            <div className="pcard-label">공식 링크</div>
+            <div className="pcard-text">
+              {d.link?.url ? (
+                <a href={d.link.url} target="_blank" rel="noreferrer">
+                  {d.link.title || d.link.url}
+                </a>
+              ) : (
+                '정부24 검색 결과'
+              )}
+            </div>
+          </div>
+        </li>
+      </ul>
 
       <div className="pcard-actions">
-        <button type="button" className="btn-outline" onClick={onBookmark}>⭐ 즐겨찾기</button>
-        <button type="button" className="btn-outline" onClick={onCalendar}>📅 캘린더</button>
+        <button type="button" className="pcard-btn" onClick={onBookmark}>
+          <span className="pcard-btn-ico">🔖</span>
+          즐겨찾기 추가
+        </button>
       </div>
     </div>
   );
