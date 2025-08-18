@@ -1,24 +1,59 @@
+/* 카드 컨테이너 */
 .pcard {
-  border: 2px solid rgba(37,99,235,0.2);
-  background: linear-gradient(135deg, #fff, #f6f7fb);
-  border-radius: 16px;
-  padding: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02);
 }
-.pcard-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.pcard-icon { font-size: 20px; color: #2563eb; }
-.pcard-title h3 { margin: 0; font-size: 18px; font-weight: 800; }
-.pcard-badge { display:inline-block; margin-top:4px; font-size:12px; padding:2px 8px; border-radius:999px; background:#eef2ff; color:#1e40af; }
 
-.pcard-body { display: grid; gap: 12px; margin-top: 8px; }
-.pcard-row { display: grid; grid-template-columns: 100px 1fr; gap: 12px; align-items: baseline; }
-.pcard-label { font-weight: 700; font-size: 13px; color: #111827; }
-.pcard-row p { margin: 0; color: #4b5563; font-size: 14px; line-height: 1.5; }
-.pcard-row a { color: #2563eb; text-decoration: none; }
-.pcard-row a:hover { text-decoration: underline; }
-
-.pcard-actions { display:flex; gap:8px; padding-top:12px; border-top:1px solid #e5e7eb; margin-top: 8px; }
-.btn-outline {
-  height: 36px; padding: 0 14px; font-size: 14px;
-  border: 1px solid #d1d5db; background: #fff; border-radius: 8px; cursor: pointer;
+/* 제목 */
+.pcard-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
 }
-.btn-outline:hover { background: #f9fafb; }
+
+/* 리스트 */
+.pcard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.pcard-list > li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: flex-start;
+}
+.pcard-ico { font-size: 18px; line-height: 1; margin-top: 2px; }
+.pcard-label { font-size: 13px; font-weight: 700; color: #374151; }
+.pcard-text { font-size: 14px; color: #4b5563; }
+.pcard-text a { color: #2563eb; text-decoration: none; }
+.pcard-text a:hover { text-decoration: underline; }
+
+/* 액션 */
+.pcard-actions {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #f3f4f6;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.pcard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.pcard-btn:hover { background: #f9fafb; }
+.pcard-btn-ico { font-size: 16px; }
