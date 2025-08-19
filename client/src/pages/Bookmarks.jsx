@@ -7,6 +7,11 @@ import { FaTrash, FaCalendarAlt, FaBell, FaLink, FaFilter, FaSortAmountDown } fr
 // ✅ 백엔드 베이스 + /api 접두사 강제
 const API = ((process.env.REACT_APP_API_BASE || 'http://localhost:3001').replace(/\/$/, '')) + '/api';
 
+// ✅ 유효한 http(s) 링크인지 검사
+function isValidHttpUrl(s) {
+  return typeof s === 'string' && /^https?:\/\//i.test(s);
+}
+
 export default function Bookmarks() {
   const [loading, setLoading] = useState(true);
   const [bookmarks, setBookmarks] = useState([]);
@@ -194,10 +199,11 @@ export default function Bookmarks() {
                     </span>
                   </label>
 
-                  <a className="bm-btn-outline" href={item.link || '#'} target="_blank" rel="noopener noreferrer">
-                    <FaLink style={{ marginRight: 6 }} />
-                    신청하러 가기
-                  </a>
+<a className="bm-btn-outline" href={item.link || '#'} target="_blank" rel="noopener noreferrer">
+  <FaLink style={{ marginRight: 6 }} />
+  신청하러 가기
+</a>
+
                 </footer>
               </article>
             ))}
