@@ -34,16 +34,18 @@ export default function MyPage() {
     if (!username) { setLoading(false); return; }
     const res = await fetch(`${API}/profile?username=${encodeURIComponent(username)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const me = await res.json();
-    setForm({
-      name: me?.name || "",
-      email: "", // user_profiles에 없을 수 있어 표시만 유지
-      phone: me?.phone || "",
-      industry_id: me?.industry_id || "",
-      region_id: me?.region_id || "",
-      employee_band_id: me?.employee_band_id || "",
-      start_date: me?.start_date || "",
-    });
+const me = await res.json();
+setForm({
+  name: me?.name || "",
+  email: me?.email || "",      // ← 서버에서 온 이메일 표시
+  phone: me?.phone || "",
+  industry_id: me?.industry_id ? String(me.industry_id) : "",
+  region_id: me?.region_id ? String(me.region_id) : "",
+  employee_band_id: me?.employee_band_id ? String(me.employee_band_id) : "",
+  start_date: me?.start_date || "",  // ← YYYY-MM-DD 그대로
+});
+
+
   };
 
   useEffect(() => {
@@ -99,20 +101,19 @@ export default function MyPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "저장 실패");
 
-      if (data.profile) {
-        const p = data.profile;
-        setForm({
-          name: p?.name || "",
-          email: form.email || "", // 표시용 유지
-          phone: p?.phone || "",
-          industry_id: p?.industry_id || "",
-          region_id: p?.region_id || "",
-          employee_band_id: p?.employee_band_id || "",
-          start_date: p?.start_date || "",
-        });
-      } else {
-        await loadProfile(); // 안전하게 재조회
-      }
+if (data.profile) {
+  const p = data.profile;
+  setForm({
+    name: p?.name || "",
+    email: form.email || "",
+    phone: p?.phone || "",
+    industry_id: p?.industry_id ? String(p.industry_id) : "",
+    region_id: p?.region_id ? String(p.region_id) : "",
+    employee_band_id: p?.employee_band_id ? String(p.employee_band_id) : "",
+    start_date: p?.start_date || "",  // ← 서버가 YYYY-MM-DD로 줌
+  });
+}
+
       alert("기본 정보가 저장되었습니다.");
     } catch (err) {
       console.error(err);
@@ -146,8 +147,8 @@ export default function MyPage() {
       });
 
       // 404/405 같은 경우 다른 엔드포인트로 폴백
-      if (!res.ok && (res.status === 404 || res.status === 405)) {
-        res = await fetch(`${API}/profile/password`, {
+if (!res.ok) {
+  res = await fetch(`${API}/profile/password`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body)
@@ -205,35 +206,57 @@ export default function MyPage() {
               <input name="phone" value={form.phone} onChange={onChange} placeholder="010-1234-5678" />
             </div>
 
-            <div className="field">
-              <label>업종</label>
-              <div className="select-wrap">
-                <select name="industry_id" value={form.industry_id} onChange={onChange}>
-                  <option value="">선택</option>
-                  {industries.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
-                </select>
-              </div>
-            </div>
+<div className="field">
+  <label>업종</label>
+  <div className="select-wrap">
+    <select
+      name="industry_id"
+      value={String(form.industry_id || "")}
+      onChange={onChange}
+    >
+      <option value="">선택</option>
+      {industries.map(x => (
+        <option key={x.id} value={String(x.id)}>{x.name}</option>
+      ))}
+    </select>
+  </div>
+</div>
 
-            <div className="field">
-              <label>사업장 지역</label>
-              <div className="select-wrap">
-                <select name="region_id" value={form.region_id} onChange={onChange}>
-                  <option value="">선택</option>
-                  {regions.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
-                </select>
-              </div>
-            </div>
+{/* 사업장 지역 */}
+<div className="field">
+  <label>사업장 지역</label>
+  <div className="select-wrap">
+    <select
+      name="region_id"
+      value={String(form.region_id || "")}
+      onChange={onChange}
+    >
+      <option value="">선택</option>
+      {regions.map(x => (
+        <option key={x.id} value={String(x.id)}>{x.name}</option>
+      ))}
+    </select>
+  </div>
+</div>
 
-            <div className="field">
-              <label>종업원 수</label>
-              <div className="select-wrap">
-                <select name="employee_band_id" value={form.employee_band_id} onChange={onChange}>
-                  <option value="">선택</option>
-                  {bands.map(x => <option key={x.id} value={x.id}>{x.label || x.name}</option>)}
-                </select>
-              </div>
-            </div>
+
+{/* 종업원 수 */}
+<div className="field">
+  <label>종업원 수</label>
+  <div className="select-wrap">
+    <select
+      name="employee_band_id"
+      value={String(form.employee_band_id || "")}
+      onChange={onChange}
+    >
+      <option value="">선택</option>
+      {bands.map(x => (
+        <option key={x.id} value={String(x.id)}>{x.label || x.name}</option>
+      ))}
+    </select>
+  </div>
+</div>
+
 
             <div className="field">
               <label>사업 시작일</label>
