@@ -208,3 +208,7 @@
 }
 .chip{ box-shadow: 0 1px 0 rgba(0,0,0,.03); }
 .chip:hover{ box-shadow: 0 1px 0 rgba(37,99,235,.1); }
+
+/* 멀티라인 줄바꿈 및 코드블록 가로 스크롤 */
+.bubble { white-space: pre-wrap; }
+.bubble code, .bubble pre { overflow-x: auto; }

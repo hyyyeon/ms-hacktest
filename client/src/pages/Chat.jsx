@@ -2,6 +2,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../styles/Chat.css";
 import PolicyCard from "../components/PolicyCard";
+import { normalizeMessages } from "../utils";
+
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3001";
 
@@ -41,6 +43,17 @@ function firstUrl(text="") {
   const m = text.match(/https?:\/\/[^\s)>\]]+/);
   if (!m) return "";
   return m[0].replace(/[)\]}.,;]+$/, "");
+}
+
+/* 텍스트에서 모든 URL (중복 제거) */
+function allUrlsFromText(text = "") {
+  const set = new Set();
+  const re = /https?:\/\/[^\s)>\]]+/g;
+  let m;
+  while ((m = re.exec(text))) {
+    set.add(m[0].replace(/[)\]}.,;]+$/, ""));
+  }
+  return Array.from(set);
 }
 
 /* JSON or 규칙 기반 정책 파서 */
@@ -129,13 +142,74 @@ export default function Chat() {
       setSessions(Array.isArray(data) ? data : []);
     } catch (e) { console.error("세션 목록 로드 실패:", e); }
   }
-  async function loadMessagesFor(id) {
-    try {
-      const res = await fetch(`${API_BASE}/api/chat/messages?sessionId=${id}`);
-      const rows = await res.json();
-      setMessages(rows.map((r) => ({ role: r.role, content: r.content, ts: new Date(r.created_at) })));
-    } catch (e) { console.error("메시지 로드 실패:", e); setMessages([]); }
+
+  // ✅ PATCH 3: 히스토리 세팅(정규화 포함)
+  // 히스토리 로드 + 정책/출처 복원
+async function loadMessagesFor(id) {
+  try {
+    const res = await fetch(`${API_BASE}/api/chat/messages?sessionId=${id}`);
+    const rows = await res.json();
+
+    // 1) 정규화 유틸이 기대하는 형태로 1차 매핑
+    const pre = rows.map((r) => ({
+      role: r.role,                          // 'user' | 'assistant'
+      text: r.content ?? "",
+      ts: new Date(r.created_at),
+      policy: r.policy ?? null,              // (있으면 사용, 보통 null)
+      // 백엔드가 citations를 저장했다면 활용
+      sources: r.citations ? toSources(r.citations) : undefined,
+    }));
+
+    // 2) 문자열에서 policy JSON 재추출 + 사용자 템플릿 숨기기 등 정규화
+    const normalized = normalizeMessages(pre);
+
+    // 3) 최근대화에선 citations가 없을 수 있으므로, 카드/본문에서 URL을 추출해 보강
+    const final = normalized.map((m) => {
+      let sources = m.sources;
+
+      if (!sources || sources.length === 0) {
+        const candidates = [];
+
+        // 카드 링크가 있으면 최우선
+        if (m.policy?.link?.url) {
+          candidates.push(m.policy.link.url);
+        }
+
+        // 어시스턴트 텍스트 본문에 URL이 있으면 추가
+        if (m.role === "assistant" && m.text) {
+          candidates.push(...allUrlsFromText(m.text));
+        }
+
+        // 우선순위 정렬(공식 도메인 우선) + 최대 5개로 정리
+        sources = toSources(candidates);
+      }
+
+      // 현재 렌더 로직(m.kind === "policy")에 맞춰 최종 매핑
+      if (m.role === "assistant" && m.policy) {
+        return {
+          role: "assistant",
+          kind: "policy",
+          data: m.policy,
+          ts: m.ts,
+          sources, // ✅ 보강된 참고자료
+        };
+      }
+      return {
+        role: m.role,
+        content: m.text,
+        ts: m.ts,
+        sources, // (일반 답변에도 URL이 있으면 보여줌)
+      };
+    });
+
+    setMessages(final);
+  } catch (e) {
+    console.error("메시지 로드 실패:", e);
+    setMessages([]);
   }
+}
+
+
   async function deleteSession(id) {
     try {
       await fetch(`${API_BASE}/api/chat/sessions/${id}`, { method: "DELETE" });
@@ -267,6 +341,7 @@ export default function Chat() {
                 </div>
               </div>
             ) : (
+              // ✅ PATCH 4: 메시지 렌더(map) 블록
               messages.map((m, i) => (
                 <div key={i} className={`chat-item ${m.role === "user" ? "user" : "assistant"}`}>
                   {m.kind === "policy" ? (
