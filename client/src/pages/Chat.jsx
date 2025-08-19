@@ -4,7 +4,6 @@ import "../styles/Chat.css";
 import PolicyCard from "../components/PolicyCard";
 import { normalizeMessages } from "../utils";
 
-
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3001";
 
 /* 추천 질문 */
@@ -17,18 +16,41 @@ const inlineSuggestions = ["지원 대상이 궁금해요", "신청 방법 알�
 
 /* 공식 도메인 우선 */
 const OFFICIAL_DOMAINS = [
-  "gov.kr","www.gov.kr","bokjiro.go.kr","www.bokjiro.go.kr","moel.go.kr","mohw.go.kr","msit.go.kr","korea.kr"
+  "gov.kr","www.gov.kr","bokjiro.go.kr","www.bokjiro.go.kr","moel.go.kr","mohw.go.kr","msit.go.kr","korea.kr","seoul.go.kr","housing.seoul.go.kr"
 ];
 
-/* citations → sources (공식 우선) */
-function toSources(citations = []) {
-  const arr = citations.filter(Boolean).map((url) => {
-    try { const u = new URL(url); return { title: u.hostname, url }; }
-    catch { return { title: url, url }; }
-  });
-  const official = arr.filter(s => OFFICIAL_DOMAINS.some(d => s.title.endsWith(d)));
-  return (official.length ? official : arr).slice(0, 5);
+/* citations/URL 배열 → sources (공식 우선, 중복/가짜 제거) */
+function toSources(input = []) {
+  // 입력 정규화: 문자열/객체 섞여도 URL만 뽑기
+  const urls = (Array.isArray(input) ? input : [])
+    .map(v => (typeof v === "string" ? v : v?.url))
+    .filter(u => typeof u === "string" && /^https?:\/\//i.test(u))
+    .map(u => u.replace(/[)\]}.,;]+$/, "")); // 꼬리 구두점 제거
+
+  // 중복 제거
+  const uniq = Array.from(new Set(urls));
+
+  const arr = uniq.map((url) => {
+    try {
+      const u = new URL(url);
+      return { title: u.hostname, url: u.href };
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+
+  // 공식 도메인 판별
+  const isOfficial = (host) =>
+    OFFICIAL_DOMAINS.some(d => host === d || host.endsWith("." + d));
+
+  // ✅ 공식 먼저, 그 다음 나머지 (버리지 않음!)
+  const official = arr.filter(s => isOfficial(s.title));
+  const nonOfficial = arr.filter(s => !isOfficial(s.title));
+
+  // 최대 5개까지만
+  return [...official, ...nonOfficial].slice(0, 5);
 }
+
 
 /* 날짜 추출 */
 function extractDateFromText(t = "") {
@@ -45,7 +67,7 @@ function firstUrl(text="") {
   return m[0].replace(/[)\]}.,;]+$/, "");
 }
 
-/* 텍스트에서 모든 URL (중복 제거) */
+/* 텍스트에서 모든 URL 수집 */
 function allUrlsFromText(text = "") {
   const set = new Set();
   const re = /https?:\/\/[^\s)>\]]+/g;
@@ -54,6 +76,18 @@ function allUrlsFromText(text = "") {
     set.add(m[0].replace(/[)\]}.,;]+$/, ""));
   }
   return Array.from(set);
+}
+
+/* 숨은 sources 코드블록에서 URL 배열 추출 (백엔드 저장용 우회, 스키마 변경 없음) */
+function extractHiddenSources(text = "") {
+  const m = text.match(/```sources\s*([\s\S]*?)```/i);
+  if (!m) return [];
+  try {
+    const arr = JSON.parse(m[1]);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
 }
 
 /* JSON or 규칙 기반 정책 파서 */
@@ -93,7 +127,9 @@ function extractPolicyFromText(text, citations=[]) {
   const linkUrlFromRaw = raw.link?.url || raw.url || raw.링크 || "";
   let linkTitleFromRaw = raw.link?.title || raw.링크제목 || "";
 
-  const preferred = toSources(citations).find(s => OFFICIAL_DOMAINS.some(d => s.title.endsWith(d)));
+  const preferred = toSources(citations).find(s =>
+    OFFICIAL_DOMAINS.some(d => s.title === d || s.title.endsWith("." + d))
+  );
   const finalLinkUrl = preferred?.url || linkUrlFromRaw || `https://www.gov.kr/portal/service/search?query=${encodeURIComponent(raw.title || "")}`;
   const finalLinkTitle = preferred?.title || linkTitleFromRaw || "정부24 바로가기";
 
@@ -107,6 +143,22 @@ function extractPolicyFromText(text, citations=[]) {
     category: raw.category || raw.카테고리 || "",
   };
   return data;
+}
+
+/* reply/정책/본문에서 출처 후보 URL들을 한 번에 모으기 */
+function collectSourceUrls({ replyText = "", policy }) {
+  const urls = new Set();
+
+  // 1) 숨은 sources 블록 (백엔드가 content에 같이 저장해둔 경우)
+  extractHiddenSources(replyText).forEach(u => urls.add(u));
+
+  // 2) 정책 카드 링크
+  if (policy?.link?.url) urls.add(policy.link.url);
+
+  // 3) 본문 내 모든 URL
+  allUrlsFromText(replyText).forEach(u => urls.add(u));
+
+  return Array.from(urls);
 }
 
 export default function Chat() {
@@ -143,72 +195,55 @@ export default function Chat() {
     } catch (e) { console.error("세션 목록 로드 실패:", e); }
   }
 
-  // ✅ PATCH 3: 히스토리 세팅(정규화 포함)
   // 히스토리 로드 + 정책/출처 복원
-async function loadMessagesFor(id) {
-  try {
-    const res = await fetch(`${API_BASE}/api/chat/messages?sessionId=${id}`);
-    const rows = await res.json();
+  async function loadMessagesFor(id) {
+    try {
+      const res = await fetch(`${API_BASE}/api/chat/messages?sessionId=${id}`);
+      const rows = await res.json();
 
-    // 1) 정규화 유틸이 기대하는 형태로 1차 매핑
-    const pre = rows.map((r) => ({
-      role: r.role,                          // 'user' | 'assistant'
-      text: r.content ?? "",
-      ts: new Date(r.created_at),
-      policy: r.policy ?? null,              // (있으면 사용, 보통 null)
-      // 백엔드가 citations를 저장했다면 활용
-      sources: r.citations ? toSources(r.citations) : undefined,
-    }));
+      // 1) 백엔드 원시 레코드 → 정규화 유틸이 기대하는 형태로 1차 매핑
+      const pre = rows.map((r) => ({
+        role: r.role,                          // 'user' | 'assistant'
+        text: r.content ?? "",
+        ts: new Date(r.created_at),
+        policy: r.policy ?? null,              // (있으면 사용, 보통 null)
+        sources: r.citations ? toSources(r.citations) : undefined, // (있으면 변환)
+      }));
 
-    // 2) 문자열에서 policy JSON 재추출 + 사용자 템플릿 숨기기 등 정규화
-    const normalized = normalizeMessages(pre);
+      // 2) 문자열에서 policy JSON 재추출 + 사용자 템플릿 숨기기 등 정규화
+      const normalized = normalizeMessages(pre);
 
-    // 3) 최근대화에선 citations가 없을 수 있으므로, 카드/본문에서 URL을 추출해 보강
-    const final = normalized.map((m) => {
-      let sources = m.sources;
+      // 3) 최근대화에선 citations가 없을 수 있으므로, 카드/본문에서 URL들을 추출해 보강
+      const final = normalized.map((m) => {
+        // 이미 m.sources가 있다면 URL만 뽑아 결합
+        const existingUrls = (m.sources || []).map(s => s.url);
+        const collected = collectSourceUrls({ replyText: m.text || "", policy: m.policy });
 
-      if (!sources || sources.length === 0) {
-        const candidates = [];
+        const merged = toSources([...existingUrls, ...collected]);
 
-        // 카드 링크가 있으면 최우선
-        if (m.policy?.link?.url) {
-          candidates.push(m.policy.link.url);
+        if (m.role === "assistant" && m.policy) {
+          return {
+            role: "assistant",
+            kind: "policy",
+            data: m.policy,
+            ts: m.ts,
+            sources: merged, // ✅ 보강된 참고자료
+          };
         }
-
-        // 어시스턴트 텍스트 본문에 URL이 있으면 추가
-        if (m.role === "assistant" && m.text) {
-          candidates.push(...allUrlsFromText(m.text));
-        }
-
-        // 우선순위 정렬(공식 도메인 우선) + 최대 5개로 정리
-        sources = toSources(candidates);
-      }
-
-      // 현재 렌더 로직(m.kind === "policy")에 맞춰 최종 매핑
-      if (m.role === "assistant" && m.policy) {
         return {
-          role: "assistant",
-          kind: "policy",
-          data: m.policy,
+          role: m.role,
+          content: m.text,
           ts: m.ts,
-          sources, // ✅ 보강된 참고자료
+          sources: merged,
         };
-      }
-      return {
-        role: m.role,
-        content: m.text,
-        ts: m.ts,
-        sources, // (일반 답변에도 URL이 있으면 보여줌)
-      };
-    });
+      });
 
-    setMessages(final);
-  } catch (e) {
-    console.error("메시지 로드 실패:", e);
-    setMessages([]);
+      setMessages(final);
+    } catch (e) {
+      console.error("메시지 로드 실패:", e);
+      setMessages([]);
+    }
   }
-}
-
 
   async function deleteSession(id) {
     try {
@@ -258,15 +293,21 @@ async function loadMessagesFor(id) {
     setLoading(true);
 
     try {
-      // JSON 카드 강제 + 빈칸 금지 힌트
-      const hint =
-        "\n\n아래 JSON 포맷으로 정책 요약 1건을 반드시 포함하세요. 비어 있는 값은 '정보 없음'으로 채워주세요.\n" +
-        "```policy\n" +
-        "{\n" +
-        '  "title": "", "target": "", "period": "", "support": "", "method": "",\n' +
-        '  "link": {"title":"", "url": ""}, "category": ""\n' +
-        "}\n" +
-        "```\n";
+      
+    // ⚠️ 강화된 힌트: link.url은 반드시 절대 URL(https://)이어야 하며,
+   // 공식 신청/상세 페이지를 우선 사용. 모를 경우 정부24 검색 URL로 폴백.
+    // '정보 없음' 같은 값은 link.url에 절대 넣지 말 것.
+    const hint =
+      "\n\n아래 JSON 포맷으로 정책 요약 1건을 반드시 포함하세요.\n" +
+    "- link.url은 반드시 'https://'로 시작하는 절대 URL(공식 신청/상세 페이지)이어야 합니다.\n" +
+    "- 공식 URL을 모를 경우 'https://www.gov.kr/portal/service/search?query=<정책명>' 형태로 넣으세요.\n" +
+    "- '정보 없음'/'N/A'/'-' 등은 link.url에 절대 넣지 마세요.\n" +
+    "```policy\n" +
+      "{\n" +
+      '  "title": "", "target": "", "period": "", "support": "", "method": "",\n' +
+      '  "link": {"title":"정부24 바로가기", "url": "https://..."}, "category": ""\n' +
+      "}\n" +
+      "```\n";
       const full = text + hint;
 
       const res = await fetch(`${API_BASE}/api/chat`, {
@@ -279,15 +320,22 @@ async function loadMessagesFor(id) {
       if (sid && sid !== sessionId) setSessionId(sid);
 
       const policy = extractPolicyFromText(reply, citations);
+
+      // 실시간도 견고하게: citations + reply에서 수집한 URL들을 합쳐 정리
+      const combinedSources = toSources([
+        ...citations,
+        ...collectSourceUrls({ replyText: reply || "", policy }),
+      ]);
+
       if (policy) {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", kind: "policy", data: policy, ts: new Date(), sources: toSources(citations) },
+          { role: "assistant", kind: "policy", data: policy, ts: new Date(), sources: combinedSources },
         ]);
       } else {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: reply ?? "(응답 없음)", ts: new Date(), sources: toSources(citations) },
+          { role: "assistant", content: reply ?? "(응답 없음)", ts: new Date(), sources: combinedSources },
         ]);
       }
 
@@ -341,7 +389,6 @@ async function loadMessagesFor(id) {
                 </div>
               </div>
             ) : (
-              // ✅ PATCH 4: 메시지 렌더(map) 블록
               messages.map((m, i) => (
                 <div key={i} className={`chat-item ${m.role === "user" ? "user" : "assistant"}`}>
                   {m.kind === "policy" ? (
@@ -443,3 +490,4 @@ async function loadMessagesFor(id) {
     </div>
   );
 }
+// src/utils/index.js
