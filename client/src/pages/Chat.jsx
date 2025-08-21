@@ -186,18 +186,32 @@ export default function Chat() {
   useEffect(() => { if (!drawerOpen) inputRef.current?.focus(); }, [drawerOpen]);
   useEffect(() => { refreshSessions(); /* eslint-disable-next-line */ }, []);
 
+  /* 세션 목록 불러오기: 로그인 → 서버 / 게스트 → localStorage */
   async function refreshSessions() {
     try {
-      if (!username) return;
+      if (!username) {
+        const local = JSON.parse(localStorage.getItem("chatSessions") || "[]");
+        setSessions(Array.isArray(local) ? local : []);
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/chat/sessions?username=${encodeURIComponent(username)}`);
       const data = await res.json();
       setSessions(Array.isArray(data) ? data : []);
     } catch (e) { console.error("세션 목록 로드 실패:", e); }
   }
 
-  // 히스토리 로드 + 정책/출처 복원
+  // 히스토리 로드 + 정책/출처 복원 (로그인) / 게스트는 localStorage
   async function loadMessagesFor(id) {
     try {
+      // 게스트: localStorage에서 읽기
+      if (!username) {
+        const map = JSON.parse(localStorage.getItem("chatMessages") || "{}");
+        const list = Array.isArray(map[id]) ? map[id] : [];
+        setMessages(list);
+        return;
+      }
+
+      // 로그인: 서버에서 읽고, PolicyCard/출처 복원
       const res = await fetch(`${API_BASE}/api/chat/messages?sessionId=${id}`);
       const rows = await res.json();
 
@@ -245,8 +259,21 @@ export default function Chat() {
     }
   }
 
+  // 세션 삭제: 로그인 → 서버 / 게스트 → localStorage
   async function deleteSession(id) {
     try {
+      if (!username) {
+        const sessions = JSON.parse(localStorage.getItem("chatSessions") || "[]");
+        const map = JSON.parse(localStorage.getItem("chatMessages") || "{}");
+        const nextSessions = sessions.filter(s => String(s.id) !== String(id));
+        delete map[id];
+        localStorage.setItem("chatSessions", JSON.stringify(nextSessions));
+        localStorage.setItem("chatMessages", JSON.stringify(map));
+        setSessions(nextSessions);
+        if (id === sessionId) { setSessionId(null); setMessages([]); }
+        return;
+      }
+
       await fetch(`${API_BASE}/api/chat/sessions/${id}`, { method: "DELETE" });
       await refreshSessions();
       if (id === sessionId) { setSessionId(null); setMessages([]); }
@@ -310,6 +337,44 @@ export default function Chat() {
       "```\n";
       const full = text + hint;
 
+      // 🔹 비로그인(게스트): localStorage에만 기록
+      if (!username) {
+        const localId = sessionId || Date.now().toString();
+        const now = new Date();
+        const nowIso = now.toISOString();
+        setSessionId(localId);
+
+        // 임시 안내 응답 (백엔드 호출 없음)
+        const aiReply = {
+          role: "assistant",
+          content:
+            "🔎 비로그인(로컬 모드)입니다. 로그인을 하면 채팅 기록이 모든 기기에서 동기화됩니다.\n\n지금은 브라우저에만 임시 저장돼요.",
+          ts: now
+        };
+
+        const allMsgs = [...(messages || []), { role: "user", content: text, ts: now }, aiReply];
+
+        // 세션 목록 갱신
+        const allSessions = JSON.parse(localStorage.getItem("chatSessions") || "[]");
+        const idx = allSessions.findIndex(s => String(s.id) === String(localId));
+        if (idx === -1) {
+          allSessions.push({ id: localId, title: text.slice(0, 20), updated_at: nowIso, created_at: nowIso });
+        } else {
+          allSessions[idx] = { ...allSessions[idx], title: allSessions[idx].title || text.slice(0, 20), updated_at: nowIso };
+        }
+        localStorage.setItem("chatSessions", JSON.stringify(allSessions));
+
+        // 메시지 저장
+        const map = JSON.parse(localStorage.getItem("chatMessages") || "{}");
+        map[localId] = allMsgs;
+        localStorage.setItem("chatMessages", JSON.stringify(map));
+
+        setMessages(allMsgs);
+        setLoading(false);
+        return;
+      }
+
+      // 🔹 로그인: 서버 호출
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -461,7 +526,18 @@ export default function Chat() {
         </div>
 
         <div className="drawer-body">
-          <button className="btn-primary" onClick={() => { setMessages([]); setSessionId(null); setDrawerOpen(false); }}>＋ 새 채팅</button>
+          {/* 새 채팅: 게스트일 때 로컬 저장을 지우지는 않고, 새 대화만 시작 */}
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setMessages([]);
+              setSessionId(null);
+              setDrawerOpen(false);
+            }}
+          >
+            ＋ 새 채팅
+          </button>
+
           <div className="search-box"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="채팅 검색…" /></div>
           <div className="drawer-section-label">최근 채팅</div>
           <div className="history-scroll">
@@ -490,4 +566,3 @@ export default function Chat() {
     </div>
   );
 }
-// src/utils/index.js
