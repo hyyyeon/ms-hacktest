@@ -1,5 +1,5 @@
 // src/pages/Chat.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/Chat.css";
 import PolicyCard from "../components/PolicyCard";
 import { normalizeMessages } from "../utils";
@@ -14,20 +14,29 @@ const defaultSuggestions = [
 ];
 const inlineSuggestions = ["지원 대상이 궁금해요", "신청 방법 알려주세요", "필요 서류는 무엇인가요?"];
 
+/* --- 질문 분류 함수 --- */
+function isPolicyQuestion(text) {
+  const applyWords = /(지원|신청|대상|조건|방법|자격|금액|기간)/;
+  const explainWords = /(차이|비교|이유|목적|원리|배경)/;
+
+  if (applyWords.test(text)) return true;      // 정책 질문 → 카드
+  if (explainWords.test(text)) return false;   // 설명/비교 → 텍스트
+  return false; // 나머지는 텍스트(설명/잡담)
+}
+
 /* 공식 도메인 우선 */
 const OFFICIAL_DOMAINS = [
-  "gov.kr","www.gov.kr","bokjiro.go.kr","www.bokjiro.go.kr","moel.go.kr","mohw.go.kr","msit.go.kr","korea.kr","seoul.go.kr","housing.seoul.go.kr"
+  "gov.kr","www.gov.kr","bokjiro.go.kr","www.bokjiro.go.kr",
+  "moel.go.kr","mohw.go.kr","msit.go.kr","korea.kr",
+  "seoul.go.kr","housing.seoul.go.kr"
 ];
 
 /* citations/URL 배열 → sources (공식 우선, 중복/가짜 제거) */
 function toSources(input = []) {
-  // 입력 정규화: 문자열/객체 섞여도 URL만 뽑기
   const urls = (Array.isArray(input) ? input : [])
     .map(v => (typeof v === "string" ? v : v?.url))
     .filter(u => typeof u === "string" && /^https?:\/\//i.test(u))
-    .map(u => u.replace(/[)\]}.,;]+$/, "")); // 꼬리 구두점 제거
-
-  // 중복 제거
+    .map(u => u.replace(/[)\]}.,;]+$/, ""));
   const uniq = Array.from(new Set(urls));
 
   const arr = uniq.map((url) => {
@@ -39,24 +48,20 @@ function toSources(input = []) {
     }
   }).filter(Boolean);
 
-  // 공식 도메인 판별
   const isOfficial = (host) =>
     OFFICIAL_DOMAINS.some(d => host === d || host.endsWith("." + d));
 
-  // ✅ 공식 먼저, 그 다음 나머지 (버리지 않음!)
   const official = arr.filter(s => isOfficial(s.title));
   const nonOfficial = arr.filter(s => !isOfficial(s.title));
 
-  // 최대 5개까지만
   return [...official, ...nonOfficial].slice(0, 5);
 }
 
-
 /* 날짜 추출 */
 function extractDateFromText(t = "") {
-  const m = String(t).match(/(20\d{2})[.\-\/년\s]*(\d{1,2})[.\-\/월\s]*(\d{1,2})/);
+  const m = String(t).match(/(20\d{2})[.\-/년\s]*(\d{1,2})[.\-/월\s]*(\d{1,2})/);
   if (!m) return null;
-  const [_, y, mo, d] = m;
+  const [, y, mo, d] = m; // 첫 캡처는 쓰지 않음
   return `${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 }
 
@@ -78,7 +83,7 @@ function allUrlsFromText(text = "") {
   return Array.from(set);
 }
 
-/* 숨은 sources 코드블록에서 URL 배열 추출 (백엔드 저장용 우회, 스키마 변경 없음) */
+/* 숨은 sources 코드블록에서 URL 배열 추출 */
 function extractHiddenSources(text = "") {
   const m = text.match(/```sources\s*([\s\S]*?)```/i);
   if (!m) return [];
@@ -95,13 +100,10 @@ const tryJSON = (s) => { try { return JSON.parse(s); } catch { return null; } };
 
 function extractPolicyFromText(text, citations=[]) {
   if (!text) return null;
-
-  // 1) fenced code block 내 JSON
   const fence = text.match(/```(?:policy|json)?\s*([\s\S]*?)\s*```/i);
   let raw = fence ? tryJSON(fence[1]) : null;
   if (!raw && text.trim().startsWith("{") && text.trim().endsWith("}")) raw = tryJSON(text);
 
-  // 2) 규칙 기반(라벨: 값)
   if (!raw) {
     const get = (...labels) => {
       for (const L of labels) {
@@ -123,17 +125,17 @@ function extractPolicyFromText(text, citations=[]) {
     };
   }
 
-  // 3) 정규화 + 빈칸 보정 + 공식 링크 선택
   const linkUrlFromRaw = raw.link?.url || raw.url || raw.링크 || "";
   let linkTitleFromRaw = raw.link?.title || raw.링크제목 || "";
 
   const preferred = toSources(citations).find(s =>
     OFFICIAL_DOMAINS.some(d => s.title === d || s.title.endsWith("." + d))
   );
-  const finalLinkUrl = preferred?.url || linkUrlFromRaw || `https://www.gov.kr/portal/service/search?query=${encodeURIComponent(raw.title || "")}`;
+  const finalLinkUrl = preferred?.url || linkUrlFromRaw ||
+    `https://www.gov.kr/portal/service/search?query=${encodeURIComponent(raw.title || "")}`;
   const finalLinkTitle = preferred?.title || linkTitleFromRaw || "정부24 바로가기";
 
-  const data = {
+  return {
     title:  raw.title || raw.정책명 || "정책",
     target: raw.target || raw.지원대상 || raw.대상 || "정보 없음",
     period: raw.period || raw.신청기간 || raw.기간 || "정보 없음",
@@ -142,32 +144,108 @@ function extractPolicyFromText(text, citations=[]) {
     link:   { title: finalLinkTitle, url: finalLinkUrl },
     category: raw.category || raw.카테고리 || "",
   };
-  return data;
 }
 
-/* reply/정책/본문에서 출처 후보 URL들을 한 번에 모으기 */
+/* reply/정책/본문에서 출처 후보 URL 모으기 */
 function collectSourceUrls({ replyText = "", policy }) {
   const urls = new Set();
-
-  // 1) 숨은 sources 블록 (백엔드가 content에 같이 저장해둔 경우)
   extractHiddenSources(replyText).forEach(u => urls.add(u));
-
-  // 2) 정책 카드 링크
   if (policy?.link?.url) urls.add(policy.link.url);
-
-  // 3) 본문 내 모든 URL
   allUrlsFromText(replyText).forEach(u => urls.add(u));
-
   return Array.from(urls);
+}
+
+/* --- 프롬프트 힌트(단일 정의) --- */
+const policyHint =
+  "\n\n아래 JSON 포맷으로 정책 요약 1건을 반드시 포함하세요.\n" +
+  "- link.url은 반드시 'https://'로 시작하는 절대 URL이어야 합니다.\n" +
+  "- 모르면 정부24 검색 URL을 사용하세요.\n" +
+  "```policy\n" +
+  "{\n" +
+  '  "title": "", "target": "", "period": "", "support": "", "method": "",\n' +
+  '  "link": {"title":"정부24 바로가기", "url": "https://..."}, "category": ""\n' +
+  "}\n" +
+  "```";
+
+const explainHint =
+  "\n\n아래 질문은 정책 제도/용어 설명입니다.\n" +
+  "- 카드 형식 출력 금지\n" +
+  "- 자연스러운 문단 설명 (필요시 bullet point)\n" +
+"- 출처 링크는 필요하지 않음 (정책카드 질문에만 표시)\n" +
+  "- **, __, #, [1] 같은 마크다운/각주 표기 사용 금지\n";
+
+/* --- 텍스트 답변 포맷터: 마크다운/각주 제거 + 리스트/링크 처리 --- */
+function escapeHtml(s="") {
+  return s.replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function linkify(html="") {
+  // URL을 링크로
+  return html.replace(/(https?:\/\/[^\s)>\]]+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');
+}
+function formatTextReply(text="") {
+  // 0) 안전하게 이스케이프
+  let t = escapeHtml(text);
+
+  // 1) 각주/인용 번호 제거: [1], [12], [1][3] 등
+  t = t.replace(/\[(\d+)\](?=\W|$)/g, "");      // 단일 [n]
+  t = t.replace(/(\[(\d+)\]\s*)+/g, "");        // 연속 [n][m]
+
+  // 2) 코드블록/인라인코드 제거(내용만 남김)
+  t = t.replace(/```[\s\S]*?```/g, (m)=> escapeHtml(m.replace(/```/g,"")).trim());
+  t = t.replace(/`([^`]+)`/g, '$1');
+
+  // 3) 굵게/기울임 마크다운 처리 (**굵게**, *기울임*)
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/(?:^|[\s(])\*([^*\n]+)\*(?=[\s).,!?:;]|$)/g, '$1');
+
+  // 4) 줄 단위 가공: 리스트/문단
+  const lines = t.split(/\r?\n/);
+  const out = [];
+  let inUL = false, inOL = false;
+
+  const openUL = ()=>{ if(!inUL){ out.push("<ul>"); inUL=true; } };
+  const closeUL= ()=>{ if(inUL){ out.push("</ul>"); inUL=false; } };
+  const openOL = ()=>{ if(!inOL){ out.push("<ol>"); inOL=true; } };
+  const closeOL= ()=>{ if(inOL){ out.push("</ol>"); inOL=false; } };
+
+  for (const raw of lines) {
+    const ln = raw.trim();
+
+    // 빈 줄: 리스트 닫고 <br/> 구분
+    if (!ln) { closeUL(); closeOL(); out.push("<br/>"); continue; }
+
+    // 숫자. 리스트
+    if (/^\d+\.\s+/.test(ln)) {
+      closeUL(); openOL();
+      out.push("<li>" + ln.replace(/^\d+\.\s+/, "") + "</li>");
+      continue;
+    }
+    // 불릿 리스트 (-, *, •)
+    if (/^[-*•]\s+/.test(ln)) {
+      closeOL(); openUL();
+      out.push("<li>" + ln.replace(/^[-*•]\s+/, "") + "</li>");
+      continue;
+    }
+
+    // 일반 문장
+    closeUL(); closeOL();
+    out.push("<p>" + ln + "</p>");
+  }
+  closeUL(); closeOL();
+
+  // 5) 링크 자동 변환
+  const html = linkify(out.join("\n"));
+
+  // 6) 과도한 <br/> 정리
+  return html.replace(/(?:<br\/>\s*){3,}/g, "<br/><br/>");
 }
 
 export default function Chat() {
   const username = (JSON.parse(localStorage.getItem("user") || "null") || {}).username || null;
-
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [sessionId, setSessionId] = useState(null);
-  const [messages, setMessages] = useState([]); // {role, content|data, kind?, ts, sources?}
+  const [messages, setMessages] = useState([]);
   const [search, setSearch] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -184,10 +262,9 @@ export default function Chat() {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
   useEffect(() => { inputRef.current?.focus(); }, []);
   useEffect(() => { if (!drawerOpen) inputRef.current?.focus(); }, [drawerOpen]);
-  useEffect(() => { refreshSessions(); /* eslint-disable-next-line */ }, []);
 
   /* 세션 목록 불러오기: 로그인 → 서버 / 게스트 → localStorage */
-  async function refreshSessions() {
+  const refreshSessions = useCallback(async () => {
     try {
       if (!username) {
         const local = JSON.parse(localStorage.getItem("chatSessions") || "[]");
@@ -197,8 +274,12 @@ export default function Chat() {
       const res = await fetch(`${API_BASE}/api/chat/sessions?username=${encodeURIComponent(username)}`);
       const data = await res.json();
       setSessions(Array.isArray(data) ? data : []);
-    } catch (e) { console.error("세션 목록 로드 실패:", e); }
-  }
+    } catch (e) {
+      console.error("세션 목록 로드 실패:", e);
+    }
+  }, [username]);
+
+  useEffect(() => { refreshSessions(); }, [refreshSessions]);
 
   // 히스토리 로드 + 정책/출처 복원 (로그인) / 게스트는 localStorage
   async function loadMessagesFor(id) {
@@ -310,7 +391,7 @@ export default function Chat() {
     }
   }
 
-  /* 전송 */
+  /* --- 전송 --- */
   async function send(msg) {
     const text = (msg ?? input).trim();
     if (!text || loading) return;
@@ -320,21 +401,8 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      
-    // ⚠️ 강화된 힌트: link.url은 반드시 절대 URL(https://)이어야 하며,
-   // 공식 신청/상세 페이지를 우선 사용. 모를 경우 정부24 검색 URL로 폴백.
-    // '정보 없음' 같은 값은 link.url에 절대 넣지 말 것.
-    const hint =
-      "\n\n아래 JSON 포맷으로 정책 요약 1건을 반드시 포함하세요.\n" +
-    "- link.url은 반드시 'https://'로 시작하는 절대 URL(공식 신청/상세 페이지)이어야 합니다.\n" +
-    "- 공식 URL을 모를 경우 'https://www.gov.kr/portal/service/search?query=<정책명>' 형태로 넣으세요.\n" +
-    "- '정보 없음'/'N/A'/'-' 등은 link.url에 절대 넣지 마세요.\n" +
-    "```policy\n" +
-      "{\n" +
-      '  "title": "", "target": "", "period": "", "support": "", "method": "",\n' +
-      '  "link": {"title":"정부24 바로가기", "url": "https://..."}, "category": ""\n' +
-      "}\n" +
-      "```\n";
+      const isPolicy = isPolicyQuestion(text);
+      const hint = isPolicy ? policyHint : explainHint;
       const full = text + hint;
 
       // 🔹 비로그인(게스트): localStorage에만 기록
@@ -374,7 +442,6 @@ export default function Chat() {
         return;
       }
 
-      // 🔹 로그인: 서버 호출
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -384,9 +451,7 @@ export default function Chat() {
 
       if (sid && sid !== sessionId) setSessionId(sid);
 
-      const policy = extractPolicyFromText(reply, citations);
-
-      // 실시간도 견고하게: citations + reply에서 수집한 URL들을 합쳐 정리
+      const policy = isPolicy ? extractPolicyFromText(reply, citations) : null;
       const combinedSources = toSources([
         ...citations,
         ...collectSourceUrls({ replyText: reply || "", policy }),
@@ -470,7 +535,10 @@ export default function Chat() {
                     </div>
                   ) : (
                     <div className={`bubble ${m.role === "user" ? "me" : ""}`}>
-                      <div className="bubble-text">{m.content}</div>
+                      <div
+                        className="bubble-text"
+                        dangerouslySetInnerHTML={{ __html: formatTextReply(m.content || "") }}
+                      />
                       {m.sources?.length > 0 && (
                         <div className="sources">
                           <div className="sources-title">참고 자료</div>
@@ -542,7 +610,11 @@ export default function Chat() {
           <div className="drawer-section-label">최근 채팅</div>
           <div className="history-scroll">
             {filtered.map((c) => (
-              <div key={c.id} className={`history-item ${sessionId === c.id ? "active" : ""}`} onClick={() => { setSessionId(c.id); setDrawerOpen(false); loadMessagesFor(c.id); }}>
+              <div
+                key={c.id}
+                className={`history-item ${sessionId === c.id ? "active" : ""}`}
+                onClick={() => { setSessionId(c.id); setDrawerOpen(false); loadMessagesFor(c.id); }}
+              >
                 <div className="history-main">
                   <div className="history-title">💬 {c.title || "새 대화"}</div>
                   <div className="history-last">{(() => {
@@ -555,7 +627,11 @@ export default function Chat() {
                     return `${Math.floor(diffH / 24)}일 전`;
                   })()}</div>
                 </div>
-                <button className="trash" onClick={(e) => { e.stopPropagation(); deleteSession(c.id); }} aria-label="삭제">🗑️</button>
+                <button
+                  className="trash"
+                  onClick={(e) => { e.stopPropagation(); deleteSession(c.id); }}
+                  aria-label="삭제"
+                >🗑️</button>
               </div>
             ))}
           </div>

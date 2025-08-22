@@ -212,3 +212,10 @@
 /* 멀티라인 줄바꿈 및 코드블록 가로 스크롤 */
 .bubble { white-space: pre-wrap; }
 .bubble code, .bubble pre { overflow-x: auto; }
+
+/* 텍스트 답변 가독성 */
+.bubble .bubble-text p { margin: 0 0 6px 0; line-height: 1.6; }
+.bubble .bubble-text ul, 
+.bubble .bubble-text ol { margin: 6px 0 6px 18px; padding-left: 18px; }
+.bubble .bubble-text li { margin: 2px 0; }
+.bubble .bubble-text strong { font-weight: 600; }
