@@ -4,7 +4,7 @@ import "../styles/Chat.css";
 import PolicyCard from "../components/PolicyCard";
 import { normalizeMessages } from "../utils";
 import {
-  FaComments, FaComment,  FaRegCommentDots    // ✅ 새로 추가
+  FaComments, FaComment   
 } from 'react-icons/fa';
 
 
@@ -459,7 +459,7 @@ const policy = isPolicy ? extractPolicyFromText(reply, citations) : null;
                 <p className="empty-title">안녕하세요! 복지랑 AI입니다.</p>
                 <p className="empty-sub">궁금한 정책에 대해 무엇이든 물어보세요.</p>
                 <div className="sugg-block">
-                  <div className="sugg-title">💡 추천 질문</div>
+                  <div className="sugg-title">추천 질문</div>
                   <div className="sugg-grid">
                     {defaultSuggestions.map((q, i) => (
                       <button key={i} className="chip" onClick={() => send(q)}>{q}</button>
