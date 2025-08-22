@@ -3,6 +3,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import "../styles/Chat.css";
 import PolicyCard from "../components/PolicyCard";
 import { normalizeMessages } from "../utils";
+import {
+  FaComments, FaComment,  FaRegCommentDots    // ✅ 새로 추가
+} from 'react-icons/fa';
+
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3001";
 
@@ -451,7 +455,7 @@ const policy = isPolicy ? extractPolicyFromText(reply, citations) : null;
           <div className="chat-scroll">
             {messages.length === 0 && !loading ? (
               <div className="empty-state">
-                <div className="empty-icon">💬</div>
+<div className="empty-icon"><FaComments /></div>
                 <p className="empty-title">안녕하세요! 복지랑 AI입니다.</p>
                 <p className="empty-sub">궁금한 정책에 대해 무엇이든 물어보세요.</p>
                 <div className="sugg-block">
@@ -561,7 +565,7 @@ const policy = isPolicy ? extractPolicyFromText(reply, citations) : null;
                 onClick={() => { setSessionId(c.id); setDrawerOpen(false); loadMessagesFor(c.id); }}
               >
                 <div className="history-main">
-                  <div className="history-title">💬 {c.title || "새 대화"}</div>
+<FaComment style={{ marginRight: 6, color: "#666" }} /> {c.title || "새 대화"}
                   <div className="history-last">{(() => {
                     const date = new Date(c.updated_at || c.created_at);
                     const now = new Date();
