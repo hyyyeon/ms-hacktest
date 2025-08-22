@@ -263,15 +263,11 @@ export default function Chat() {
   useEffect(() => { inputRef.current?.focus(); }, []);
   useEffect(() => { if (!drawerOpen) inputRef.current?.focus(); }, [drawerOpen]);
 
-  /* 세션 목록 불러오기: 로그인 → 서버 / 게스트 → localStorage */
+// ✅ 로그인/비로그인 모두 서버에서 가져오도록 통일
   const refreshSessions = useCallback(async () => {
     try {
-      if (!username) {
-        const local = JSON.parse(localStorage.getItem("chatSessions") || "[]");
-        setSessions(Array.isArray(local) ? local : []);
-        return;
-      }
-      const res = await fetch(`${API_BASE}/api/chat/sessions?username=${encodeURIComponent(username)}`);
+      const qs = username ? `?username=${encodeURIComponent(username)}` : "";
+      const res = await fetch(`${API_BASE}/api/chat/sessions${qs}`);
       const data = await res.json();
       setSessions(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -284,17 +280,12 @@ export default function Chat() {
   // 히스토리 로드 + 정책/출처 복원 (로그인) / 게스트는 localStorage
   async function loadMessagesFor(id) {
     try {
-      // 게스트: localStorage에서 읽기
-      if (!username) {
-        const map = JSON.parse(localStorage.getItem("chatMessages") || "{}");
-        const list = Array.isArray(map[id]) ? map[id] : [];
-        setMessages(list);
-        return;
-      }
-
-      // 로그인: 서버에서 읽고, PolicyCard/출처 복원
-      const res = await fetch(`${API_BASE}/api/chat/messages?sessionId=${id}`);
-      const rows = await res.json();
+      // ✅ 서버에서 직접 읽기 (게스트/회원 공통)
+      const qs = username
+        ? `?sessionId=${encodeURIComponent(id)}&username=${encodeURIComponent(username)}`
+        : `?sessionId=${encodeURIComponent(id)}`;
+      const res = await fetch(`${API_BASE}/api/chat/messages${qs}`);
+       const rows = await res.json();
 
       // 1) 백엔드 원시 레코드 → 정규화 유틸이 기대하는 형태로 1차 매핑
       const pre = rows.map((r) => ({
@@ -343,19 +334,9 @@ export default function Chat() {
   // 세션 삭제: 로그인 → 서버 / 게스트 → localStorage
   async function deleteSession(id) {
     try {
-      if (!username) {
-        const sessions = JSON.parse(localStorage.getItem("chatSessions") || "[]");
-        const map = JSON.parse(localStorage.getItem("chatMessages") || "{}");
-        const nextSessions = sessions.filter(s => String(s.id) !== String(id));
-        delete map[id];
-        localStorage.setItem("chatSessions", JSON.stringify(nextSessions));
-        localStorage.setItem("chatMessages", JSON.stringify(map));
-        setSessions(nextSessions);
-        if (id === sessionId) { setSessionId(null); setMessages([]); }
-        return;
-      }
-
-      await fetch(`${API_BASE}/api/chat/sessions/${id}`, { method: "DELETE" });
+      const qs = username ? `?username=${encodeURIComponent(username)}` : "";
+            await fetch(`${API_BASE}/api/chat/sessions/${id}${qs}`, { method: "DELETE" });
+    
       await refreshSessions();
       if (id === sessionId) { setSessionId(null); setMessages([]); }
     } catch (e) { console.error("세션 삭제 실패:", e); }
@@ -401,47 +382,11 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const isPolicy = isPolicyQuestion(text);
+            const isPolicy = isPolicyQuestion(text);
       const hint = isPolicy ? policyHint : explainHint;
       const full = text + hint;
 
-      // 🔹 비로그인(게스트): localStorage에만 기록
-      if (!username) {
-        const localId = sessionId || Date.now().toString();
-        const now = new Date();
-        const nowIso = now.toISOString();
-        setSessionId(localId);
-
-        // 임시 안내 응답 (백엔드 호출 없음)
-        const aiReply = {
-          role: "assistant",
-          content:
-            "🔎 비로그인(로컬 모드)입니다. 로그인을 하면 채팅 기록이 모든 기기에서 동기화됩니다.\n\n지금은 브라우저에만 임시 저장돼요.",
-          ts: now
-        };
-
-        const allMsgs = [...(messages || []), { role: "user", content: text, ts: now }, aiReply];
-
-        // 세션 목록 갱신
-        const allSessions = JSON.parse(localStorage.getItem("chatSessions") || "[]");
-        const idx = allSessions.findIndex(s => String(s.id) === String(localId));
-        if (idx === -1) {
-          allSessions.push({ id: localId, title: text.slice(0, 20), updated_at: nowIso, created_at: nowIso });
-        } else {
-          allSessions[idx] = { ...allSessions[idx], title: allSessions[idx].title || text.slice(0, 20), updated_at: nowIso };
-        }
-        localStorage.setItem("chatSessions", JSON.stringify(allSessions));
-
-        // 메시지 저장
-        const map = JSON.parse(localStorage.getItem("chatMessages") || "{}");
-        map[localId] = allMsgs;
-        localStorage.setItem("chatMessages", JSON.stringify(map));
-
-        setMessages(allMsgs);
-        setLoading(false);
-        return;
-      }
-
+      // ✅ 게스트/회원 모두 서버 호출
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -450,8 +395,8 @@ export default function Chat() {
       const { reply, citations = [], sessionId: sid } = await res.json();
 
       if (sid && sid !== sessionId) setSessionId(sid);
+const policy = isPolicy ? extractPolicyFromText(reply, citations) : null;
 
-      const policy = isPolicy ? extractPolicyFromText(reply, citations) : null;
       const combinedSources = toSources([
         ...citations,
         ...collectSourceUrls({ replyText: reply || "", policy }),
@@ -469,7 +414,7 @@ export default function Chat() {
         ]);
       }
 
-      refreshSessions();
+      await refreshSessions();
     } catch (err) {
       console.error("❌ Chat API Error:", err);
       setMessages((prev) => [
