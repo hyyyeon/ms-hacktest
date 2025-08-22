@@ -1,48 +1,55 @@
 /* src/pages/Home.jsx */
 import React from 'react';
-  import { Link, useNavigate } from 'react-router-dom';
-  import '../styles/Home.css';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  FaSearch, FaBriefcase, FaComments, FaStar,
+  FaCheckCircle, FaBell, FaChartLine, FaStore,
+  FaMoneyBillWave, FaRocket, FaArrowRight,
+  FaRegIdCard, FaClone,  FaHistory, FaBook, FaFolderOpen   // ✅ 새로 추가
+} from 'react-icons/fa';
+
+import '../styles/Home.css';
+
 export default function Home() {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
 
-
-   return (
-     <div className="home-page">
+  return (
+    <div className="home-page">
       {/* 🎯 히어로 섹션 */}
       <section className="hero">
         <div className="hero__text">
-          <span className="badge">🎯 맞춤형 AI 정책 도우미</span>
+          <span className="badge"><FaBriefcase /> 소상공인·기업 전용 AI 정책 도우미</span>
           <h1 className="headline">
             <span className="grad-primary">복지랑</span><br />
-            나에게 딱 맞는<br />
-            <span className="grad-mix">정책을 찾아드려요</span>
+            내 사업에 딱 맞는<br />
+            <span className="grad-mix">지원정책을 찾아드립니다</span>
           </h1>
           <p className="sub">
-            청년부터 어르신까지, 누구나 손쉽게 <strong>AI 챗봇</strong>으로
-            자신에게 맞는 복지·정책 정보를 빠르게 검색해 보세요
+            소상공인·기업 맞춤형 <strong>AI 챗봇</strong>으로  
+            최신 정책과 지원 정보를 빠르게 확인하세요.
           </p>
           <div className="search-card">
             <div className="search-input">
-              <span className="icon">🔍</span>
+              <FaSearch className="icon" />
               <input
                 type="text"
-                placeholder="어떤 정책이 궁금하신가요? (예: 청년 월세 지원)"
+                placeholder="예: 소상공인 대출 지원, 기업 세제 혜택"
               />
             </div>
             <button
               className="btn-primary"
               onClick={() => navigate('/chat')}
             >
-              AI에게 물어보기 →
+              AI에게 물어보기 <FaArrowRight />
             </button>
           </div>
           <p>인기 검색어 :</p>
           <div className="keywords">
             {[
-              '💰 청년 월세 지원',
               '🏪 소상공인 재난지원금',
-              '👥 어르신 돌봄 서비스',
-              '🚀 창업 지원 정책'
+              '🏢 기업 세제 혜택',
+              '💳 저금리 대출 지원',
+              '📈 창업 성장 패키지'
             ].map(word => (
               <Link key={word} to={`/chat?q=${encodeURIComponent(word)}`}>
                 {word}
@@ -51,7 +58,7 @@ export default function Home() {
           </div>
         </div>
         <div className="hero__image">
-          <img src="/banner.png" alt="복지랑 서비스 미리보기" />
+          <img src="/banner.png" alt="소상공인·기업 정책 미리보기" />
         </div>
       </section>
 
@@ -59,19 +66,20 @@ export default function Home() {
       <section className="feature">
         <h2>
           <span className="badge">✨ 주요 서비스</span><br />
-          복지랑이 제공하는 <span className="grad-primary">스마트한 기능</span>
+          소상공인·기업 전용 <span className="grad-primary">AI 정책 도우미</span>
         </h2>
         <p className="section-sub">
-          AI 기술과 최신 정책 데이터로 가장 정확한 정보를 빠르게 제공합니다
+          AI 기술과 공식 데이터를 기반으로 최신 정보를 빠르게 제공합니다.
         </p>
         <div className="feature-grid">
-          {[ 
-            { icon: '💬', title: 'AI 챗봇 상담', desc: '자연어로 질문하면 맞춤형 정책을 즉시 찾아드려요' },
-            { icon: '📅', title: '정책 캘린더', desc: '중요한 신청 마감일을 한눈에 보고 놓치지 마세요' },
-            { icon: '⭐', title: '즐겨찾기', desc: '관심 정책을 저장하고 업데이트 알림을 받아보세요' },
-            { icon: '🎯', title: '맞춤 추천', desc: '나이·직업·상황에 맞춘 정확한 정책 추천' },
-            { icon: '🔔', title: '마감일 알림', desc: '중요한 마감일을 푸시/메일로 미리 안내' },
-            { icon: '🏛️', title: '공식 출처', desc: '정부·지자체 공개 데이터를 기반으로 신뢰성 보장' }
+          {[
+            { icon: <FaComments />, title: 'AI 맞춤 상담', desc: '내 사업 조건에 맞는 지원정책을 10초 만에 요약' },
+            { icon: <FaClone />, title: '정책 카드 제공', desc: 'AI가 찾아준 정책을 카드 형식으로 한눈에 확인' },
+//      { icon: <FaCalendarAlt />, title: '정책 캘린더', desc: '신청 마감일·중요 일정 한눈에 확인' },
+            { icon: <FaStar />, title: '관심 정책 즐겨찾기', desc: '필요한 정책을 저장하고 업데이트 알림' },
+            { icon: <FaCheckCircle />, title: '공식 데이터 기반', desc: '정부·지자체 신뢰성 보장 자료 제공' },
+            { icon: <FaBell />, title: '알림 서비스', desc: '마감일, 새로운 지원 소식 알림 제공' },
+            { icon: <FaHistory />, title: '대화 기록/즐겨찾기 관리', desc: '최근 대화와 저장한 정책을 언제든 다시 확인' }
           ].map(card => (
             <div key={card.title} className="feature-card">
               <span className="card-icon">{card.icon}</span>
@@ -82,85 +90,43 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 📊 복지랑 통계 섹션 (비활성화 상태) */}
-      {/*
-      <section className="stats">
-        <h2>복지랑과 함께하는 성과</h2>
-        <p className="section-sub">
-          더 많은 분들이 복지랑을 통해 자신에게 맞는 정책을 찾고 계십니다
-        </p>
-        <div className="stats-grid">
-          {[ 
-            { icon: '📨', value: '500K+', label: 'AI 상담 완료' },
-            { icon: '📁', value: '1,200+', label: '정책 정보 등록' },
-            { icon: '👍', value: '98%', label: '이용자 만족도' },
-            { icon: '⏱️', value: '24시간', label: '평균 응답 시간' }
-          ].map(stat => (
-            <div key={stat.label} className="stat-card">
-              <div className="stat-icon">{stat.icon}</div>
-              <h3>{stat.value}</h3>
-              <p>{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-      */}
-
-      {/* 🎖️ 인증 뱃지 섹션 (비활성화 상태) */}
-      {/*
-      <section className="badges">
-        {[ 
-          { icon: '🛡️', title: '정부 인증', desc: '공식 정책 데이터' },
-          { icon: '🏅', title: '신뢰성 보장', desc: '검증된 정보만 제공' },
-          { icon: '👥', title: '50만+ 이용자', desc: '많은 분들이 선택' },
-          { icon: '⏰', title: '24시간 서비스', desc: '언제든지 이용 가능' }
-        ].map(badge => (
-          <div key={badge.title} className="badge-card">
-            <div className="badge-icon">{badge.icon}</div>
-            <h4>{badge.title}</h4>
-            <p>{badge.desc}</p>
-          </div>
-        ))}
-      </section>
-      */}
-
-      {/* ❓ 신규 정책 소개 섹션 */}
+      {/* 📈 신규 정책 안내 섹션 */}
       <section className="popular">
         <div className="popular-head">
-          <span className="popular-icon">📈</span>
-          <h2>신규 정책 안내</h2>
-<p className="section-sub">최근에 새로 발표된 주요 정책들을 한눈에 확인해보세요</p>
+          <span className="popular-icon"><FaChartLine /></span>
+          <h2>신규 지원 정책 안내</h2>
+          <p className="section-sub">최근 발표된 소상공인·기업 지원정책을 확인하세요</p>
         </div>
         <div className="popular-grid">
-          {[ 
-            {
-              title: '청년 정책',
-              color: 'var(--blue)',
-              icon: '🧑‍🎓',
-              questions: [
-                '청년 월세 지원 신청 방법이 궁금해요',
-                '청년 취업 지원금은 어떻게 받나요?',
-                '청년 창업 지원 프로그램 알려주세요'
-              ]
-            },
+          {[
             {
               title: '소상공인 지원',
               color: 'var(--green)',
-              icon: '🏢',
+              icon: <FaStore />,
               questions: [
                 '소상공인 재난지원금 신청 조건은?',
-                '소상공인 대출 지원 프로그램이 있나요?',
+                '저금리 대출 지원 프로그램이 있나요?',
                 '임대료 지원 정책이 궁금합니다'
               ]
             },
             {
-              title: '어르신 복지',
-              color: 'var(--purple)',
-              icon: '❤️',
+              title: '기업 세제 혜택',
+              color: 'var(--blue)',
+              icon: <FaMoneyBillWave />,
               questions: [
-                '기초연금 신청 방법을 알려주세요',
-                '어르신 돌봄 서비스는 어떻게 이용하나요?',
-                '노인장기요양보험 등급 판정은 어떻게?'
+                '중소기업 세금 감면 정책 알려주세요',
+                'R&D 투자 세액 공제 혜택이 있나요?',
+                '고용 창출 기업 인센티브 신청 방법은?'
+              ]
+            },
+            {
+              title: '창업 성장 패키지',
+              color: 'var(--purple)',
+              icon: <FaRocket />,
+              questions: [
+                '창업 지원금 신청 방법 알려주세요',
+                '초기 창업자 교육 프로그램 있나요?',
+                '창업 공간 지원 정책이 궁금해요'
               ]
             }
           ].map(cat => (
@@ -183,11 +149,11 @@ export default function Home() {
 
       {/* ✅ 하단 CTA 섹션 */}
       <section className="cta">
-        <h2>지금 바로 복지랑을 체험해 보세요!</h2>
-        <p>정책 검색부터 신청 일정 관리까지 한 곳에서 해결할 수 있습니다</p>
+        <h2>지금 바로 소상공인·기업 맞춤형 복지랑을 시작하세요!</h2>
+        <p>정책 검색부터 신청 일정 관리까지 한 번에 해결할 수 있습니다.</p>
         <div style={{ marginTop: '24px' }}>
           <button className="btn-compact" onClick={() => navigate('/chat')}>
-            무료로 시작하기
+            무료로 시작하기 <FaArrowRight />
           </button>
         </div>
       </section>
@@ -195,7 +161,7 @@ export default function Home() {
       {/* 📎 푸터 영역 */}
       <footer className="footer">
         <div className="footer-inner">
-          <span>© 2025 복지랑 | AI 정책 정보 서비스</span>
+          <span>© 2025 복지랑 | 소상공인·기업 AI 정책 정보 서비스</span>
           <nav>
             <a
               href="https://github.com/hyyyeon/ms-hacktest"
@@ -210,3 +176,4 @@ export default function Home() {
     </div>
   );
 }
+

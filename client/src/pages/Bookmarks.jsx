@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/Home.css';
 import '../styles/Bookmarks.css';
 import { FaTrash, FaCalendarAlt, FaBell, FaLink, FaFilter, FaSortAmountDown } from 'react-icons/fa';
+import { FaBookmark, FaBoxOpen, FaRegBookmark } from "react-icons/fa";
 
 // ✅ 백엔드 베이스 + /api 접두사 강제
 const API = ((process.env.REACT_APP_API_BASE || 'http://localhost:3001').replace(/\/$/, '')) + '/api';
@@ -29,6 +30,13 @@ export default function Bookmarks() {
     (async () => {
       setLoading(true);
       setError('');
+       if (!username) {
+      if (!cancel) {
+        setError('로그인 후 사용이 가능합니다.');
+        setLoading(false);
+      }
+      return;
+    }
       try {
         const qs = username ? `?username=${encodeURIComponent(username)}` : '';
         const res = await fetch(`${API}/bookmarks${qs}`);
@@ -36,7 +44,7 @@ export default function Bookmarks() {
         const data = await res.json();
         if (!cancel) setBookmarks(Array.isArray(data) ? data : []);
       } catch (e) {
-        if (!cancel) setError('목록을 불러오지 못했어요.');
+        if (!cancel) setError('목록을 불러오지 못했어요.'); 
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -153,8 +161,7 @@ export default function Bookmarks() {
           <div className="bm-empty">{error}</div>
         ) : view.length === 0 ? (
           <div className="bm-empty">
-            <div className="bm-empty-icon">🔖</div>
-            <h3>저장된 정책이 없습니다</h3>
+<div className="bm-empty-icon">  <FaRegBookmark style={{ marginRight: 6, color: "#666" }}/></div>            <h3>저장된 정책이 없습니다</h3>
             <p className="muted">AI 챗봇에서 관심 있는 정책을 저장해보세요</p>
           </div>
         ) : (
