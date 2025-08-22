@@ -46,10 +46,10 @@ export default function Home() {
           <p>인기 검색어 :</p>
           <div className="keywords">
             {[
-              '🏪 소상공인 재난지원금',
-              '🏢 기업 세제 혜택',
-              '💳 저금리 대출 지원',
-              '📈 창업 성장 패키지'
+              ' 소상공인 재난지원금',
+              ' 기업 세제 혜택',
+              ' 저금리 대출 지원',
+              ' 창업 성장 패키지'
             ].map(word => (
               <Link key={word} to={`/chat?q=${encodeURIComponent(word)}`}>
                 {word}
@@ -138,7 +138,7 @@ export default function Home() {
               <ul className="popular-list">
                 {cat.questions.map(q => (
                   <li key={q}>
-                    <Link to={`/chat?q=${encodeURIComponent(q)}`}>💬 {q}</Link>
+                    <Link to={`/chat?q=${encodeURIComponent(q)}`}> {q}</Link>
                   </li>
                 ))}
               </ul>
