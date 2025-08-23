@@ -128,7 +128,7 @@ router.get('/messages', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const pool = db(req);
-    const { username, sessionId: sessionIdRaw, message } = req.body || {};
+    const { username, sessionId: sessionIdRaw, message, history: clientHistory } = req.body || {};
     const userMsg = safeText(message);
     if (!userMsg) return res.status(400).json({ message: 'message는 필수입니다.' });
 
@@ -185,9 +185,41 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ reply: '(서버 설정 오류: API 키 없음)', sessionId, citations: [] });
     }
 
+// === 히스토리 구성 ===
+    let history = [];
+    // 1) 프론트에서 보낸 compact history가 있으면 우선 사용 (최근 N개만 신뢰)
+    if (Array.isArray(clientHistory) && clientHistory.length > 0) {
+      history = clientHistory
+        .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .slice(-12);
+      // 현재 질문을 맨 뒤에 추가 (clientHistory에는 직전까지만 들어있음)
+      history.push({ role: 'user', content: userMsg });
+    } else if (sessionId) {
+      // 2) 프론트 히스토리가 없으면 서버 저장 이력으로 복원
+      if (username) {
+        // 로그인: DB에서 세션 이력 로드 (이미 방금 userMsg가 INSERT 됨)
+        const [rows] = await pool.query(
+          `SELECT role, content
+             FROM chat_messages
+            WHERE session_id=?
+            ORDER BY created_at ASC
+            LIMIT 20`,
+          [sessionId]
+        );
+        history = rows.map(r => ({ role: r.role, content: r.content || '' }));
+      } else {
+        // 비로그인: 메모리 세션에서 이력 로드 (이미 방금 userMsg가 push 됨)
+        const s = memorySessions.get(sessionId);
+        if (s) history = s.messages.map(m => ({ role: m.role, content: m.content || '' })).slice(-20);
+      }
+    } else {
+      // 3) 신규 세션이면서 프론트 히스토리도 없는 경우
+      history = [{ role: 'user', content: userMsg }];
+    }
+
     const payload = {
       model: 'sonar-pro',
-      messages: [{ role: 'user', content: userMsg }],
+      messages: history,
       max_tokens: 1024,
       temperature: 0.2,
     };

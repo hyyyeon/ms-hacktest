@@ -12,20 +12,57 @@ const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3001";
 
 /* 추천 질문 */
 const defaultSuggestions = [
-  "소상공인 정책자금에 대해서 알려주세요?",
+  "소상공인 정책자금에 대해서 알려주세요",
   "직원 고용 시 받을 수 있는 인건비 지원 제도가 있나요?",
   "자연재해로 피해를 본 소상공인 지원금은 어디서 신청하나요",
 ];
-const inlineSuggestions = ["지원 대상이 궁금해요", "신청 방법 알려주세요", "필요 서류는 무엇인가요?"];
+const inlineSuggestions = ["지원 대상이 궁금해요", "신청 방법 자세히 알려주세요", "필요 서류 자세히 알려주세요"];
 
-/* --- 질문 분류 함수 --- */
-function isPolicyQuestion(text) {
-  const applyWords = /(지원|신청|대상|조건|방법|자격|금액|기간)/;
-  const explainWords = /(차이|비교|이유|목적|원리|배경)/;
+/* --- 질문 분류 함수 (정확도 향상) --- */
+/* 규칙 우선순위
+ * 1) 강제 토글 문구
+ * 2) 행동형  설명형 동시 등장 => 텍스트(깊은 설명 요구, 예: '신청방법 자세히')
+ * 3) 행동형만 있음 => 카드
+ * 4) 설명형만 있음 => 텍스트
+ * 5) 정책/사업 명사만 있음 => 카드(요약 카드 성향)
+ * 6) 그 외 => 텍스트
+ */
+function isPolicyQuestion(text = "") {
+  const t = String(text).trim().toLowerCase();
+  if (!t) return false;
 
-  if (applyWords.test(text)) return true;      // 정책 질문 → 카드
-  if (explainWords.test(text)) return false;   // 설명/비교 → 텍스트
-  return false; // 나머지는 텍스트(설명/잡담)
+  // 1) 강제 스위치
+  const FORCE_CARD = /(카드로|카드형|표로|요약해줘)/;
+  const FORCE_TEXT = /(텍스트로|설명형|길게|자세히\s*설명|분석해줘|풀어서)/;
+  if (FORCE_CARD.test(t)) return true;
+  if (FORCE_TEXT.test(t)) return false;
+
+  // 2) 키워드 세트
+  const ACTION_WORDS =
+    /(신청|방법|대상|자격|조건|서류|구비\s*서류|필요\s*서류|기간|금액|혜택|지원액|절차|접수|링크|홈페이지|기관|문의처|제출|신청서)/;
+  const EXPLAIN_WORDS =
+    /(설명|알려줘|자세히|상세히|정리|개요|가이드|정의|의미|원리|배경|주의|주의사항|팁|차이|비교|faq|자주\s*묻는\s*질문)/;
+  const POLICY_NOUNS =
+    /(정책|지원|지원금|보조금|장려금|바우처|재난지원금|월세|수당|대출|감면|공고|모집|사업|지원사업|쿠폰|프로그램|패키지)/;
+
+  const hasAction    = ACTION_WORDS.test(t);
+  const wantsExplain = EXPLAIN_WORDS.test(t);
+  const hasPolicyNoun= POLICY_NOUNS.test(t);
+
+  // 2') 행동형  설명형 동시 등장 → 텍스트 (예: '신청방법 자세히')
+  if (hasAction && wantsExplain) return false;
+
+  // 3) 행동형만 있으면 카드
+  if (hasAction) return true;
+
+  // 4) 설명형만 있으면 텍스트
+  if (wantsExplain) return false;
+
+  // 5) 정책/사업 명사만 언급 → 카드(요약 카드 성향)
+  if (hasPolicyNoun) return true;
+
+  // 6) 기본값 → 텍스트
+  return false;
 }
 
 /* 공식 도메인 우선 */
@@ -381,30 +418,70 @@ export default function Chat() {
     const text = (msg ?? input).trim();
     if (!text || loading) return;
 
+    // ── 공통 가드레일: 정책/복지 외엔 정중 거절하도록 모델에 지시 ──
+const GUARDRAIL_RULES = `
+[규칙]
+- 이 챗봇은 "정부 정책/복지/행정 안내"에 한해 답변한다.
+- 질문이 정책/복지와 무관하거나 비속어/홍보/선동/개인정보 유도/범죄 등 부적절하면, 아래 한 줄로 간단히 거절한다.
+  "이 서비스는 정책·복지 관련 질문만 도와드려요. 예) 청년 월세 지원 신청 방법, 소상공인 정책자금 대상 등"
+- 직전 대화가 특정 정책카드였다면, 이어지는 짧은 용어 질문(예: '소득인정액', '기준중위소득')은 간단 텍스트로 설명한다.
+- 정책 정보가 필요한 경우에만 카드 형식(대상/기간/내용/방법/링크)으로 요약한다.
+`;
+
     setMessages((prev) => [...prev, { role: "user", content: text, ts: new Date() }]);
     setInput("");
     setLoading(true);
 
     try {
-            const isPolicy = isPolicyQuestion(text);
+const isPolicy = isPolicyQuestion(text);
       const hint = isPolicy ? policyHint : explainHint;
-      const full = text + hint;
+      // 모델에 규칙을 함께 전달하여 키워드 없이도 오프토픽/비속어를 스스로 거절하게 함
+      const full = `${text}\n\n${hint}\n\n${GUARDRAIL_RULES}`;
 
-      // ✅ 게스트/회원 모두 서버 호출
+// 최근 히스토리를 compact 형태로 서버에 전달 (정책카드는 간단 요약으로 변환)
+      const compactHistory = [...messages]
+        .slice(-10)
+        .map(m => {
+          if (m.kind === "policy" && m.data) {
+            const p = m.data;
+            const summary =
+              `${p.title}\n지원 대상: ${p.target}\n지원 내용: ${p.support}\n신청 방법: ${p.method}`;
+            return { role: "assistant", content: summary };
+          }
+          return { role: m.role, content: m.content || "" };
+        })
+        .filter(m => m.content && (m.role === "user" || m.role === "assistant"));
+
+      // ✅ 게스트/회원 모두 서버 호출 (history 동봉)
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, sessionId, message: full }),
+        body: JSON.stringify({ username, sessionId, message: full, history: compactHistory }),
       });
+
       const { reply, citations = [], sessionId: sid } = await res.json();
-
       if (sid && sid !== sessionId) setSessionId(sid);
-const policy = isPolicy ? extractPolicyFromText(reply, citations) : null;
 
-      const combinedSources = toSources([
-        ...citations,
-        ...collectSourceUrls({ replyText: reply || "", policy }),
-      ]);
+      // ✅ 응답 텍스트 스코프/타입 안전화
+      const assistantText = typeof reply === "string" ? reply : "";
+
+      // ✅ 거절 패턴 감지 (거절이면 출처 숨김)
+      const REJECT_MSG = /이 서비스는\s*정책[·∙\- ]?복지\s*관련 질문만 도와드려요/i;
+      const isReject = REJECT_MSG.test(assistantText);
+
+      // ✅ 정책카드 파싱: 거절 응답이 아닐 때만 시도
+      const policy = (!isReject && isPolicy)
+        ? extractPolicyFromText(assistantText, citations)
+        : null;
+
+      // ✅ 출처: 거절이면 빈 배열
+      const combinedSources = isReject
+        ? []
+        : toSources([
+            ...citations,
+            ...collectSourceUrls({ replyText: assistantText, policy }),
+          ]);
+      
 
       if (policy) {
         setMessages((prev) => [
@@ -414,16 +491,23 @@ const policy = isPolicy ? extractPolicyFromText(reply, citations) : null;
       } else {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: reply ?? "(응답 없음)", ts: new Date(), sources: combinedSources },
+// ✅ 거절 응답이어도 정상 텍스트로 노출, 단 출처는 없음
+          { role: "assistant", content: assistantText || "(응답 없음)", ts: new Date(), sources: combinedSources },
         ]);
       }
 
       await refreshSessions();
+    
     } catch (err) {
       console.error("❌ Chat API Error:", err);
+      // ⚠️ 실패 시엔 모델 응답/출처 변수에 의존하지 않고, 단순 안내만 출력
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.", ts: new Date() },
+        {
+          role: "assistant",
+          content: "요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+          ts: new Date(),
+        },
       ]);
     } finally {
       setLoading(false);
