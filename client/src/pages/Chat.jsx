@@ -2,8 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/Chat.css";
 import PolicyCard from "../components/PolicyCard";
-import { normalizeMessages } from "../utils";
-import {
+import { normalizeMessages } from "../utils";import {
   FaComments, FaComment   
 } from 'react-icons/fa';
 
@@ -17,6 +16,26 @@ const defaultSuggestions = [
   "자연재해로 피해를 본 소상공인 지원금은 어디서 신청하나요",
 ];
 const inlineSuggestions = ["지원 대상이 궁금해요", "신청 방법 자세히 알려주세요", "필요 서류 자세히 알려주세요"];
+
+// 프롬프트 템플릿/코드펜스/가이드 문구 제거(제목용)
+function stripUserTemplateServer(s = '') {
+  let out = String(s || '');
+  // ```policy ... ``` 코드블록 제거
+  out = out.replace(/```(?:json)?\s*~?\s*policy[\s\S]*?```/gi, '');
+  // ~policy { ... } 단문 제거
+  out = out.replace(/~?\s*policy\s*{[\s\S]*?}\s*/gi, '');
+  // "아래 JSON …", "아래 질문은 …" 등 안내문 꼬리 제거
+  //  - '포맷/형식/format' 같은 단어가 중간에 잘려도 매칭되도록 확장
+  out = out.replace(/아래\s*(?:JSON(?:\s*(?:포맷|형식|format))?|질문(?:은)?|지침|요청|설명)[\s\S]*$/gi, '');
+  // 공백 정리
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+ function mkTitleFrom(text) {
+   const clean = stripUserTemplateServer(text);
+   if (!clean) return '새 대화';
+   return clean.length > 40 ? clean.slice(0, 40) + '…' : clean;
+ }
 
 /* --- 질문 분류 함수 (정확도 향상) --- */
 /* 규칙 우선순위
@@ -232,7 +251,7 @@ function formatTextReply(text="") {
   t = t.replace(/(\[(\d+)\]\s*)+/g, "");        // 연속 [n][m]
 
   // 2) 코드블록/인라인코드 제거(내용만 남김)
-  t = t.replace(/```[\s\S]*?```/g, (m)=> escapeHtml(m.replace(/```/g,"")).trim());
+ t = t.replace(/```[\s\S]*?```/g, (m)=> m.replace(/```/g,"").trim());
   t = t.replace(/`([^`]+)`/g, '$1');
 
   // 3) 굵게/기울임 마크다운 처리 (**굵게**, *기울임*)
@@ -294,10 +313,11 @@ export default function Chat() {
   const endRef = useRef(null);
   const inputRef = useRef(null);
 
-  const filtered = useMemo(() => {
+const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return sessions;
-    return sessions.filter((s) => (s.title || "새 대화").toLowerCase().includes(q));
+    // 검색도 정제된 제목 기준으로 수행
+    return sessions.filter((s) => mkTitleFrom(s.title || "새 대화").toLowerCase().includes(q));
   }, [sessions, search]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -649,7 +669,7 @@ const isPolicy = isPolicyQuestion(text);
                 onClick={() => { setSessionId(c.id); setDrawerOpen(false); loadMessagesFor(c.id); }}
               >
                 <div className="history-main">
-<FaComment style={{ marginRight: 6, color: "#666" }} /> {c.title || "새 대화"}
+<FaComment style={{ marginRight: 6, color: "#666" }} /> {mkTitleFrom(c.title || "새 대화")}
                   <div className="history-last">{(() => {
                     const date = new Date(c.updated_at || c.created_at);
                     const now = new Date();
