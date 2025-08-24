@@ -549,7 +549,7 @@ const isPolicy = isPolicyQuestion(text);
           <button className="icon-btn" aria-label="최근 채팅 열기" onClick={() => setDrawerOpen(true)}>☰</button>
           <div>
             <h1 className="chat-title">AI 정책 상담</h1>
-            <p className="chat-sub">궁금한 정책에 대해 자연어로 질문해보세요</p>
+            <p className="chat-sub">궁금한 정책에 대해 질문해보세요</p>
           </div>
         </div>
       </header>
