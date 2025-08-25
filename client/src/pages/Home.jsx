@@ -164,11 +164,12 @@ export default function Home() {
           <span>© 2025 복지랑 | 소상공인·기업 AI 정책 정보 서비스</span>
           <nav>
             <a
-              href="https://github.com/hyyyeon/ms-hacktest"
+              href="https://github.com/hyyyeon/ms-policy-chatbot"
               target="_blank"
               rel="noopener noreferrer"
             >
               깃허브
+              
             </a>
           </nav>
         </div>
