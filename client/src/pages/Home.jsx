@@ -25,8 +25,8 @@ export default function Home() {
             <span className="grad-mix">지원정책을 찾아드립니다</span>
           </h1>
           <p className="sub">
-            소상공인·기업 맞춤형 <strong>AI 챗봇</strong>으로  
-            최신 정책과 지원 정보를 빠르게 확인하세요.
+            소상공인·기업 맞춤형 <strong>AI 챗봇</strong>으로 최신 정책과 지원 정보를 <br/>
+            빠르게 확인하세요.
           </p>
           <div className="search-card">
             <div className="search-input">
@@ -73,8 +73,8 @@ export default function Home() {
         </p>
         <div className="feature-grid">
           {[
-            { icon: <FaComments />, title: 'AI 맞춤 상담', desc: '내 사업 조건에 맞는 지원정책을 10초 만에 요약' },
-            { icon: <FaClone />, title: '정책 카드 제공', desc: 'AI가 찾아준 정책을 카드 형식으로 한눈에 확인' },
+            { icon: <FaComments />, title: 'AI 맞춤 상담', desc: '내 사업 조건에 맞는 지원정책을 빠르게 요약' },
+            { icon: <FaClone />, title: '정책 카드 제공', desc: '정책을 카드 형식으로 한눈에 확인' },
 //      { icon: <FaCalendarAlt />, title: '정책 캘린더', desc: '신청 마감일·중요 일정 한눈에 확인' },
             { icon: <FaStar />, title: '관심 정책 즐겨찾기', desc: '필요한 정책을 저장하고 업데이트 알림' },
             { icon: <FaCheckCircle />, title: '공식 데이터 기반', desc: '정부·지자체 신뢰성 보장 자료 제공' },
@@ -149,7 +149,7 @@ export default function Home() {
 
       {/* ✅ 하단 CTA 섹션 */}
       <section className="cta">
-        <h2>지금 바로 소상공인·기업 맞춤형 복지랑을 시작하세요!</h2>
+        <h2>지금 바로 복지랑을 시작하세요!</h2>
         <p>정책 검색부터 신청 일정 관리까지 한 번에 해결할 수 있습니다.</p>
         <div style={{ marginTop: '24px' }}>
           <button className="btn-compact" onClick={() => navigate('/chat')}>

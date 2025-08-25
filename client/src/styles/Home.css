@@ -226,6 +226,15 @@
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
+  display: inline-flex;      /* 텍스트/아이콘을 한 줄로 */
+  align-items: center;       /* ⬅️ 수직 중앙 정렬 */
+  justify-content: center;   /* 가로도 중앙(폭이 넓어져도 중앙 유지) */
+  line-height: 1;            /* 베이스라인로 인한 아래 쏠림 방지 */
+  gap: 8px;                  /* 텍스트-아이콘 간격 */
+}
+
+.btn-primary svg {
+  vertical-align: middle;    /* 혹시 모를 SVG 베이스라인 보정 */
 }
 
 .btn-primary:hover {
